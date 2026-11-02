@@ -132,3 +132,30 @@ test('declining Artoo pickup leaves the encounter available to retry', () => {
  g.onPickupOffer=(_item,accept)=>accept();g.moveHero(-1,0);
  assert.ok(g.state.inventory.some(i=>i.tileId===794));
 });
+test('original puzzle catalog preserves mission briefs and objective items', () => {
+ assert.equal(dta.puzzles.length,205);
+ const mission=dta.puzzles.find(p=>p.id===85);
+ assert.equal(mission.type,3);assert.equal(mission.item1,810);assert.equal(mission.item2,816);
+ assert.ok(mission.texts[3].startsWith('Hello, Luke!\r\n\r\nTroubled I am.'));
+ assert.equal(dta.puzzles.filter(p=>p.type===3).length,15);
+});
+test('character animation and weapon metadata come from original CHAR/CHWP/CAUX', () => {
+ assert.equal(dta.characters.length,77);
+ const luke=dta.characters.find(c=>c.id===0);assert.equal(luke.name,'Luke Skywalker');
+ assert.deepEqual(luke.frames.slice(0,8),[1032,799,1032,1026,799,1032,1029,799]);
+ const saber=dta.characters.find(c=>c.id===14);assert.equal(saber.frames[7],510);
+ assert.equal(dta.tiles[510].name,'Lightsaber');
+});
+test('zone metadata retains monster instances and quest item lists', () => {
+ const zone=dta.zones.find(z=>z.id===2);assert.equal(zone.monsters.length,4);
+ assert.equal(zone.monsters[0].characterId,2);assert.equal(zone.monsters[0].x,13);assert.equal(zone.monsters[0].y,4);
+ assert.deepEqual(zone.monsters[0].waypoints,Array(8).fill(-1));
+ assert.ok(dta.zones.some(z=>z.requiredItemIDs.length && z.providedItemIDs.length));
+ assert.ok(dta.zones.find(z=>z.id===93).npcIDs.includes(780));
+});
+test('a new player starts without invented statistics or free equipment', async () => {
+ globalThis.localStorage.getItem=()=>null;
+ const g=game();await g.init(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
+ assert.deepEqual(g.state.inventory,[]);assert.equal(g.state.equippedWeapon,null);
+ assert.equal(g.state.highScore,0);assert.equal(g.state.gamesWon,0);assert.equal(g.state.gamesLost,0);
+});

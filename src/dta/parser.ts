@@ -1,4 +1,4 @@
-import { DtaData, Tile, Zone, Hotspot, Action, Monster, Character } from './types';
+import { DtaData, Tile, Zone, Hotspot, Action, Monster, Character, Puzzle } from './types';
 
 class BinaryReader {
   private view: DataView;
@@ -178,12 +178,39 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
 
     // IZAX/IZX2/IZX3 sizes include their eight-byte header. IZX4's size
     // counts only its payload. Actions follow IZX4 as a counted IACT list.
+    const monsters: Monster[] = [];
+    let requiredItemIDs: number[] = [];
+    let goalItemIDs: number[] = [];
+    let providedItemIDs: number[] = [];
+    let npcIDs: number[] = [];
     for (const tag of ['IZAX', 'IZX2', 'IZX3', 'IZX4']) {
       const start = reader.offset;
       if (reader.readFourCC() !== tag) throw new Error(`Zone ${zoneIdx}: expected ${tag}`);
       const size = reader.readUint32();
       const end = start + size + (tag === 'IZX4' ? 8 : 0);
       if (end < reader.offset || end > nextZoneOffset) throw new Error(`Zone ${zoneIdx}: invalid ${tag} size`);
+      const readIDs = () => {
+        const count = reader.readUint16();
+        if (reader.offset + count*2 > end) throw new Error(`Zone ${zoneIdx}: truncated ${tag} list`);
+        return Array.from({ length:count }, () => reader.readInt16());
+      };
+      if (tag === 'IZAX') {
+        reader.skip(2);
+        const count = reader.readUint16();
+        if (reader.offset + count*44 > end) throw new Error(`Zone ${zoneIdx}: truncated monsters`);
+        for (let i = 0; i < count; i++) {
+          const characterId = reader.readInt16();
+          const x = reader.readUint16();
+          const y = reader.readUint16();
+          const loot = reader.readInt16();
+          const dropsLoot = reader.readUint32() !== 0;
+          const waypoints = Array.from({ length:8 }, () => reader.readInt32());
+          monsters.push({ id:i, characterId, x, y, loot, dropsLoot, waypoints, damageTaken:0, enabled:true });
+        }
+        requiredItemIDs = readIDs();
+        goalItemIDs = readIDs();
+      } else if (tag === 'IZX2') providedItemIDs = readIDs();
+      else if (tag === 'IZX3') npcIDs = readIDs();
       reader.offset = end;
     }
     const actions: Action[] = [];
@@ -220,42 +247,87 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
       sectorCounter,
       tileIDs,
       hotspots,
-      monsters: [],
+      monsters,
       actions,
-      requiredItemIDs: [],
-      goalItemIDs: [],
-      providedItemIDs: [],
-      npcIDs: [],
+      requiredItemIDs,
+      goalItemIDs,
+      providedItemIDs,
+      npcIDs,
     });
 
     // Jump reliably to the start of next zone
     reader.offset = nextZoneOffset;
   }
 
-  // Parse Tile Names (TNAM)
-  try {
-    const u8 = new Uint8Array(buffer);
-    let tnamOffset = -1;
-    for (let i = 4500000; i < u8.length - 4; i++) {
-      if (u8[i] === 0x54 && u8[i + 1] === 0x4e && u8[i + 2] === 0x41 && u8[i + 3] === 0x4d) {
-        tnamOffset = i;
-        break;
+  const puzzles: Puzzle[] = [];
+  const characters: Character[] = [];
+  // Follow chunk boundaries; searching arbitrary byte offsets can mistake
+  // dialogue text for a chunk marker and loses complete catalogs.
+  while (reader.remaining >= 8) {
+    const tag = reader.readFourCC();
+    const size = reader.readUint32();
+    const end = reader.offset + size;
+    if (end > buffer.byteLength) throw new Error(`Invalid ${tag} chunk size`);
+    if (tag === 'ENDF') break;
+    if (tag === 'PUZ2') {
+      while (reader.offset + 2 <= end) {
+        const id = reader.readInt16();
+        if (id === -1) break;
+        if (reader.readFourCC() !== 'IPUZ') throw new Error(`Puzzle ${id}: expected IPUZ`);
+        const recordSize = reader.readUint32();
+        const recordEnd = reader.offset + recordSize;
+        if (recordEnd > end) throw new Error(`Puzzle ${id}: invalid size`);
+        const type = reader.readUint32();
+        const item1Class = reader.readInt32();
+        const item2Class = reader.readInt32();
+        reader.skip(2);
+        const texts = Array.from({ length: 5 }, () => {
+          const length = reader.readUint16();
+          if (reader.offset + length > recordEnd) throw new Error(`Puzzle ${id}: truncated text`);
+          return reader.readCString(length);
+        });
+        const item1 = reader.readInt16();
+        const item2 = reader.readInt16();
+        if (reader.offset !== recordEnd) throw new Error(`Puzzle ${id}: unexpected payload`);
+        puzzles.push({ id, type, item1Class, item2Class, texts, item1, item2 });
       }
-    }
-
-    if (tnamOffset !== -1) {
-      reader.offset = tnamOffset + 8;
-      while (reader.remaining >= 26) {
-        const tileIdx = reader.readInt16();
-        if (tileIdx === -1 || tileIdx >= tiles.length) break;
+    } else if (tag === 'CHAR') {
+      while (reader.offset + 2 <= end) {
+        const id = reader.readInt16();
+        if (id === -1) break;
+        if (reader.readFourCC() !== 'ICHA') throw new Error(`Character ${id}: expected ICHA`);
+        const recordSize = reader.readUint32();
+        const recordEnd = reader.offset + recordSize;
+        if (recordEnd > end) throw new Error(`Character ${id}: invalid size`);
+        const name = reader.readCString(16);
+        const type = reader.readInt16();
+        const movementType = reader.readInt16();
+        reader.skip(6);
+        const frames = Array.from({ length: 24 }, () => reader.readInt16());
+        if (reader.offset !== recordEnd) throw new Error(`Character ${id}: unexpected payload`);
+        characters.push({ id, name, type, movementType, frames, weaponId: -1, health: 0, damage: 0 });
+      }
+    } else if (tag === 'CHWP' || tag === 'CAUX') {
+      while (reader.offset + 2 <= end) {
+        const id = reader.readInt16();
+        if (id === -1) break;
+        const character = characters.find(c => c.id === id);
+        const value = reader.readInt16();
+        if (tag === 'CHWP') {
+          const health = reader.readInt16();
+          if (character) { character.weaponId = value; character.health = health; }
+        } else if (character) character.damage = value;
+      }
+    } else if (tag === 'TNAM') {
+      while (reader.offset + 2 <= end) {
+        const id = reader.readInt16();
+        if (id === -1) break;
+        if (reader.offset + 24 > end) throw new Error('Truncated tile name');
         const name = reader.readCString(24);
-        if (tiles[tileIdx]) {
-          tiles[tileIdx].name = name;
-        }
+        if (tiles[id]) tiles[id].name = name;
       }
     }
-  } catch (e) {
-    console.warn('Could not read TNAM block:', e);
+    reader.offset = end;
   }
 
   return {
@@ -264,6 +336,7 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
     sounds,
     tiles,
     zones,
-    characters: [],
+    characters,
+    puzzles,
   };
 }

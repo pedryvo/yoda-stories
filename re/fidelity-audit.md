@@ -115,3 +115,23 @@ modal dismissal with no observed page errors or console warnings/errors. Event
 capture is marked incomplete by REA; all requested actions completed. A desktop
 attempt could not click the hidden mobile pad; the successful scenario used a
 600x900 viewport. Declining pickup is separately covered by a regression test.
+
+## Mission/character catalog pass
+
+The parser now follows all tail chunk boundaries, replacing the fixed-offset
+TNAM search. It decodes all 205 puzzles, 77 characters, weapon references, health,
+damage, zone monster records and required/provided/goal/NPC lists.
+
+Native reader/frame evidence:
+- CHAR reader 004057d0: ev_954f3dee8d6bddc478a905ed0d6347ef6ae45afc9fc80dc2f0cdfd742980b630.
+- CHWP 00425bc0: ev_0abe12b20a44e427bde78e49b1cc718a2b0b5ab3ad3b7fe05de1a2abf0cdc698.
+- CAUX 00425b50: ev_c36a2e4e2da6516445572391fffdc6b8dbbfafa0e748aadfb17b47bd12d25129.
+- Frames 00405880: ev_824db12ccb7f758306603528b3c0f560177ce8252135117548413a30c3db7e03.
+- IZAX 00407980: ev_ff4ca886b575f3f556037878b6981283362670633a3dfd725dc90821cd54ee29.
+
+Luke now uses the original cardinal frame offsets and 0/1/0/2 walking cycle,
+correcting swapped north/west frames. New-player statistics start at zero.
+Initialization no longer grants free blaster, locator or medical supplies;
+new-world setup clears inventory, and original zone scripts grant equipment.
+Native 004047d0 destroys inventory and clears the equipped-weapon pointer;
+this does not prohibit subsequent scripted grants.

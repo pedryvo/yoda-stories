@@ -35,7 +35,11 @@ export interface Monster {
   characterId: number;
   x: number;
   y: number;
-  damage: number;
+  damageTaken: number;
+  enabled: boolean;
+  loot: number;
+  dropsLoot: boolean;
+  waypoints: number[];
 }
 
 export interface Zone {
@@ -61,6 +65,19 @@ export interface Character {
   type: number;
   movementType: number;
   frames: number[];
+  weaponId: number;
+  health: number;
+  damage: number;
+}
+
+export interface Puzzle {
+  id: number;
+  type: number;
+  item1Class: number;
+  item2Class: number;
+  texts: string[];
+  item1: number;
+  item2: number;
 }
 
 export interface DtaData {
@@ -70,4 +87,5 @@ export interface DtaData {
   tiles: Tile[];
   zones: Zone[];
   characters: Character[];
+  puzzles: Puzzle[];
 }

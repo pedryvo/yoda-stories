@@ -54,16 +54,6 @@ export class YodaGame {
   private worldZones = new Map<number, Zone>();
   private scripts = new Map<number, ZoneScripts>();
   private storyDialogue = false;
-  private startingInventory: InventoryItem[] = [];
-
-  // Luke Skywalker Tile Frames (extracted from Character 0 in Yodesk.dta)
-  // [Down, Up, Right, Left] x [Idle, Walk1, Walk2]
-  private heroFrames: number[][] = [
-    [1026, 1027, 1028], // North / Up
-    [1029, 1030, 1031], // East / Right
-    [799, 1024, 1025],  // South / Down
-    [1032, 1033, 1034], // West / Left
-  ];
 
   // Callback hooks for HTML5 UI
   public onStateUpdate?: (state: GameState) => void;
@@ -74,9 +64,9 @@ export class YodaGame {
     this.audio = new AudioManager();
     this.renderer = new TileRenderer();
 
-    const storedHigh = parseInt(localStorage.getItem('yoda_high_score') || '1250', 10);
-    const storedWon = parseInt(localStorage.getItem('yoda_games_won') || '3', 10);
-    const storedLost = parseInt(localStorage.getItem('yoda_games_lost') || '1', 10);
+    const storedHigh = parseInt(localStorage.getItem('yoda_high_score') || '0', 10);
+    const storedWon = parseInt(localStorage.getItem('yoda_games_won') || '0', 10);
+    const storedLost = parseInt(localStorage.getItem('yoda_games_lost') || '0', 10);
 
     this.state = {
       currentZoneId: -1,
@@ -118,40 +108,9 @@ export class YodaGame {
       `Yoda Stories DTA loaded: ${this.dta.tiles.length} tiles, ${this.dta.zones.length} zones.`
     );
 
-    // Initial Inventory with classic items
-    const lightsaber: InventoryItem = {
-      id: 1,
-      tileId: 18, // LightsaberBlue
-      name: t().items.lightsaber,
-      type: 'weapon',
-      count: 1,
-    };
-    const blaster: InventoryItem = {
-      id: 2,
-      tileId: 512, // Blaster
-      name: t().items.blaster,
-      type: 'weapon',
-      count: 1,
-    };
-    const locatorItem: InventoryItem = {
-      id: 3,
-      tileId: 421, // Locator
-      name: t().items.locator,
-      type: 'usable',
-      count: 1,
-    };
-    const medkitItem: InventoryItem = {
-      id: 4,
-      tileId: 505, // RebelFirstAidKit
-      name: t().items.medkit,
-      type: 'usable',
-      count: 2,
-    };
-
-    this.state.inventory = [lightsaber, blaster, locatorItem, medkitItem];
-    this.state.equippedWeapon = lightsaber;
-    this.state.equippedItem = locatorItem;
-    this.startingInventory = structuredClone(this.state.inventory);
+    this.state.inventory = [];
+    this.state.equippedWeapon = null;
+    this.state.equippedItem = null;
 
     // The original loads STUP before a world is requested from the File menu.
     this.currentZone = null;
@@ -232,7 +191,7 @@ export class YodaGame {
 
     this.state.heroX = targetX;
     this.state.heroY = targetY;
-    this.walkFrame = (this.walkFrame + 1) % 3;
+    this.walkFrame = (this.walkFrame + 1) % 4;
 
     // Check interactive hotspots in new position
     this.runScripts('walk', targetX, targetY);
@@ -278,7 +237,11 @@ export class YodaGame {
     if (!tile) return;
     const existing = this.state.inventory.find(i => i.tileId === tileId);
     if (existing) existing.count++;
-    else this.state.inventory.push({ id: tileId, tileId, name: tile.name || `Item ${tileId}`, type: 'quest', count: 1 });
+    else {
+      const item: InventoryItem = { id:tileId, tileId, name:tile.name || `Item ${tileId}`, type: (tile.attributes & 0x40) !== 0 ? 'weapon' : 'quest', count:1 };
+      this.state.inventory.push(item);
+      if (item.type === 'weapon' && !this.state.equippedWeapon) this.state.equippedWeapon = item;
+    }
     this.notifyState();
   }
 
@@ -343,11 +306,11 @@ export class YodaGame {
   }
 
   public attack(): void {
-    if (this.state.isPaused || this.storyDialogue || !this.currentZone || this.isAttacking) return;
+    if (this.state.isPaused || this.storyDialogue || !this.currentZone || !this.state.equippedWeapon || this.isAttacking) return;
     this.isAttacking = true;
     this.attackTimer = 12; // 12 frames duration
 
-    if (this.state.equippedWeapon?.id === 1) {
+    if ([18, 510].includes(this.state.equippedWeapon!.tileId)) {
       // Lightsaber
       const sounds = ['saberswg.wav', 'saberout.wav', 'schwing.wav'];
       const snd = sounds[Math.floor(Math.random() * sounds.length)];
@@ -439,7 +402,7 @@ export class YodaGame {
     this.state.worldControl = size;
     this.state.isPaused = false;
     this.state.direction = 2;
-    this.state.inventory = structuredClone(this.startingInventory);
+    this.state.inventory = [];
     this.state.equippedWeapon = this.state.inventory.find(i => i.type === 'weapon') || null;
     this.state.equippedItem = this.state.inventory.find(i => i.type === 'usable') || null;
     this.worldZones.clear();
@@ -531,8 +494,10 @@ export class YodaGame {
       return;
     }
 
-    const dirFrames = this.heroFrames[this.state.direction] || this.heroFrames[2];
-    const heroTileId = dirFrames[this.walkFrame] || 799;
+    const luke = this.dta.characters.find(c => c.id === 0);
+    const frameGroup = [0, 1, 0, 2][this.walkFrame];
+    const facing = [0, 6, 1, 3][this.state.direction];
+    const heroTileId = luke?.frames[frameGroup*8+facing] ?? 799;
     const weaponTileId = this.state.equippedWeapon?.tileId || 18;
 
     // Viewport camera centered on Luke (9x9 view)

@@ -41,3 +41,24 @@ int16 argument. Empty tiles are -1; tile 0 is valid. IZAX, IZX2 and IZX3 sizes
 include their eight-byte header. IZX4's size counts only payload bytes. A uint16
 action count follows IZX4, followed by IACT records whose sizes count payload.
 See `opcodes.md` for the decoded command layout and current interpreter coverage.
+
+## Mission and character catalogs
+
+PUZ2 has counted IPUZ records terminated by id -1. Each record stores uint32 type,
+two int32 item classes, one uint16 reserved field, five uint16-length-prefixed
+Windows-1252 texts, and two int16 item references. The shipped file contains 205
+puzzles, including 15 mission briefs (type 3). Unused item fields can contain
+historical garbage; their class/usage must be checked before lookup.
+
+CHAR uses id + ICHA + payload length, a 16-byte name, int16 type and movement,
+six reserved bytes, then 24 int16 tile references in three groups of eight.
+The cardinal offsets within each group are north 0, east 6, south 1, west 3.
+CHWP supplies character id, int16 weapon reference and int16 health. CAUX supplies
+character id and int16 damage. There are 77 characters in this asset set.
+
+IZAX starts with a reserved uint16 and a uint16 monster count. Each 44-byte
+monster stores int16 character id, uint16 x/y, int16 encoded loot, uint32 drop
+flag and eight int32 waypoint coordinates. Required-item and goal-item lists
+follow, each uint16-counted int16 values. IZX2 contains the provided-item list;
+IZX3 contains the NPC list. Runtime monster array indices must remain stable
+because scripts reference them after death.
