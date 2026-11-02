@@ -120,4 +120,8 @@ export const ptBR: TranslationDictionary = {
     use: 'Usar',
     inventory: 'Mochila',
   },
+  startup: {
+    clickToStart: 'CLIQUE OU TOQUE NA TELA PARA INICIAR',
+    orPressKey: 'Pressione [ENTER] ou [ESPAÇO] para Começar',
+  },
 };

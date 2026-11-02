@@ -76,3 +76,4 @@ export function onLanguageChange(
 }
 
 export * from './types';
+export * from './dialogues';

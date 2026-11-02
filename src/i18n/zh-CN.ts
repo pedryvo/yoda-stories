@@ -118,4 +118,8 @@ export const zhCN: TranslationDictionary = {
     use: '使用',
     inventory: '背包',
   },
+  startup: {
+    clickToStart: '点击或触摸屏幕开始游戏',
+    orPressKey: '按 [回车] 或 [空格] 开始',
+  },
 };

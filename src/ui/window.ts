@@ -1,5 +1,5 @@
 import { YodaGame, InventoryItem } from '../engine/game';
-import { t, getLanguage, setLanguage, SupportedLanguage, onLanguageChange } from '../i18n';
+import { t, getLanguage, setLanguage, SupportedLanguage, onLanguageChange, translateDialogue, translateSpeaker, translateItemName } from '../i18n';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../render/renderer';
 
 export class GameWindow {
@@ -157,6 +157,16 @@ export class GameWindow {
       <div class="viewport-screen">
         <div class="canvas-wrapper">
           <!-- Canvas injected here -->
+        </div>
+
+        <!-- Startup Screen Notice Overlay -->
+        <div class="startup-overlay" id="startup-overlay">
+          <div class="startup-prompt-card">
+            <div class="startup-prompt-badge">STAR WARS: YODA STORIES</div>
+            <div class="startup-pulse-icon">▶</div>
+            <div class="startup-prompt-title" id="lbl-startup-title">${t().startup.clickToStart}</div>
+            <div class="startup-prompt-sub" id="lbl-startup-sub">${t().startup.orPressKey}</div>
+          </div>
         </div>
 
         <!-- Pause Overlay -->
@@ -465,6 +475,18 @@ export class GameWindow {
       }
     });
 
+    // Startup overlay click to start
+    const startupOverlay = this.container.querySelector<HTMLElement>('#startup-overlay');
+    if (startupOverlay) {
+      startupOverlay.addEventListener('click', () => {
+        this.game.audio.initOnGesture();
+        if (this.game.showingStartup) {
+          this.game.newWorld();
+          startupOverlay.classList.add('hidden');
+        }
+      });
+    }
+
     // Language selector
     const langBtns = this.container.querySelectorAll<HTMLButtonElement>('[data-lang]');
     langBtns.forEach((btn) => {
@@ -626,13 +648,14 @@ export class GameWindow {
   private setupGameHooks(): void {
     this.game.onStateUpdate = (st) => this.renderState(st);
     this.game.onMessageDialog = (title, text, avatarTileId, onClose) => {
-      this.showMessageModal(title, text, avatarTileId, onClose);
+      this.showMessageModal(translateSpeaker(title), translateDialogue(text), avatarTileId, onClose);
     };
     this.game.onPickupOffer = (item, accept, cancel) => {
+      const displayName = translateItemName(item.name);
       const text = document.createElement('p');
-      text.textContent = item.name;
+      text.textContent = displayName;
       let accepted = false;
-      this.showModal(item.name,text,[
+      this.showModal(displayName,text,[
         { text: t().dialogs.ok, primary: true, onClick: () => { accepted = true; } },
         { text: t().dialogs.cancel, onClick: () => {} },
       ],() => accepted ? accept() : cancel());
@@ -640,6 +663,10 @@ export class GameWindow {
   }
 
   public renderState(st: YodaGame['state']): void {
+    const startupOverlay = this.container.querySelector<HTMLElement>('#startup-overlay');
+    if (startupOverlay && !this.game.showingStartup && !startupOverlay.classList.contains('hidden')) {
+      startupOverlay.classList.add('hidden');
+    }
     // Health & Force Bars & Values
     const barHealth = this.container.querySelector<HTMLElement>('#bar-health');
     if (barHealth) barHealth.style.width = `${Math.max(0, Math.min(100, st.health))}%`;
@@ -807,6 +834,11 @@ export class GameWindow {
     const btnOpt = this.container.querySelector('#btn-options label');
     if (btnOpt) btnOpt.textContent = dict.menus.options;
 
+    const startupTitle = this.container.querySelector('#lbl-startup-title');
+    if (startupTitle) startupTitle.textContent = dict.startup.clickToStart;
+    const startupSub = this.container.querySelector('#lbl-startup-sub');
+    if (startupSub) startupSub.textContent = dict.startup.orPressKey;
+
     // Refresh state
     this.renderState(this.game.state);
   }
@@ -892,7 +924,7 @@ export class GameWindow {
       avatarRow.appendChild(cvs);
 
       const titleCol = document.createElement('div');
-      titleCol.textContent = title;
+      titleCol.textContent = translateSpeaker(title);
       avatarRow.appendChild(titleCol);
       wrap.appendChild(avatarRow);
     }
@@ -903,10 +935,10 @@ export class GameWindow {
     p.style.color = '#e2e8f0';
     p.style.lineHeight = '1.6';
     p.style.whiteSpace = 'pre-wrap';
-    p.textContent = text;
+    p.textContent = translateDialogue(text);
     wrap.appendChild(p);
 
-    this.showModal(title, wrap, [
+    this.showModal(translateSpeaker(title), wrap, [
       {
         text: 'ENTENDIDO, COMANDO',
         primary: true,

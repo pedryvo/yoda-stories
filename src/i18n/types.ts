@@ -112,6 +112,10 @@ export interface TranslationDictionary {
     use: string;
     inventory: string;
   };
+  startup: {
+    clickToStart: string;
+    orPressKey: string;
+  };
 }
 
 export type SupportedLanguage = 'en' | 'pt-BR' | 'zh-CN' | 'ru' | 'de';

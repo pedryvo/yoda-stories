@@ -120,4 +120,8 @@ export const en: TranslationDictionary = {
     use: 'Use',
     inventory: 'Bag',
   },
+  startup: {
+    clickToStart: 'CLICK OR TAP SCREEN TO START',
+    orPressKey: 'Press [ENTER] or [SPACE] to Begin',
+  },
 };

@@ -120,4 +120,8 @@ export const ru: TranslationDictionary = {
     use: 'Предмет',
     inventory: 'Сумка',
   },
+  startup: {
+    clickToStart: 'НАЖМИТЕ НА ЭКРАН ДЛЯ НАЧАЛА',
+    orPressKey: 'Нажмите [ENTER] или [ПРОБЕЛ] для старта',
+  },
 };

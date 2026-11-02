@@ -120,4 +120,8 @@ export const de: TranslationDictionary = {
     use: 'Nutzen',
     inventory: 'Tasche',
   },
+  startup: {
+    clickToStart: 'AUF DEN BILDSCHIRM TIPPEN ZUM STARTEN',
+    orPressKey: 'Drücke [ENTER] oder [LEERTASTE] zum Starten',
+  },
 };
