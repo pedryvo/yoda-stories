@@ -11,17 +11,20 @@ async function bootstrap() {
   const gameWindow = new GameWindow(game, root);
   new VirtualPad(game, root);
 
-  // Render initial loading screen so canvas is never a blank black screen
+  // Render initial Star Wars Sci-Fi loading screen
   const ctx = gameWindow.ctx;
-  ctx.fillStyle = '#000080';
+  ctx.fillStyle = '#07090e';
   ctx.fillRect(0, 0, 288, 288);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 15px "MS Sans Serif", Tahoma, sans-serif';
+  ctx.fillStyle = '#ffe81f';
+  ctx.font = 'bold 16px "Orbitron", "Rajdhani", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('Star Wars: Yoda Stories', 144, 120);
-  ctx.font = '12px "MS Sans Serif", Tahoma, sans-serif';
-  ctx.fillStyle = '#ffff00';
-  ctx.fillText('Loading adventure assets...', 144, 150);
+  ctx.fillText('STAR WARS', 144, 115);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 12px "Orbitron", "Rajdhani", sans-serif';
+  ctx.fillText('YODA STORIES', 144, 138);
+  ctx.font = '11px "Share Tech Mono", monospace';
+  ctx.fillStyle = '#00f0ff';
+  ctx.fillText('INITIALIZING HOLO-HUD...', 144, 168);
 
   // Keyboard Event Handling
   const keysPressed: Record<string, boolean> = {};
@@ -123,13 +126,14 @@ async function bootstrap() {
     requestAnimationFrame(gameLoop);
   } catch (err: any) {
     console.error('Failed to load yodesk.dta:', err);
-    ctx.fillStyle = '#800000';
+    ctx.fillStyle = '#0f0507';
     ctx.fillRect(0, 0, 288, 288);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 13px "MS Sans Serif", Tahoma, sans-serif';
+    ctx.fillStyle = '#ff3344';
+    ctx.font = 'bold 14px "Orbitron", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Error loading assets', 144, 120);
-    ctx.font = '10px "MS Sans Serif", Tahoma, sans-serif';
+    ctx.fillText('CRITICAL ERROR', 144, 120);
+    ctx.font = '10px "Share Tech Mono", monospace';
+    ctx.fillStyle = '#ffaa00';
     ctx.fillText(String(err?.message || err), 144, 150);
   }
 }

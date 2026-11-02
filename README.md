@@ -24,11 +24,11 @@ _The 1997 LucasArts Desktop Adventure classic by Hal Barwood,<br>re-engineered t
 
 Unlike heavyweight x86 emulators, this port runs natively in JavaScript, WebAssembly, and HTML5 Canvas with **zero emulation overhead**:
 
-- 🌐 **Native HTML5 Window Commands**: The classic Windows 95 title bar, menu bar (File, Options, Window, Language, Help), toolbar, and dialogs are interactive, accessible HTML5 elements and buttons, rather than a flat bitmap or emulated container.
+- 🌐 **Modern Star Wars Sci-Fi HUD**: An immersive, high-tech Star Wars tactical interface (deep space black, Imperial/Rebel gold yellow, Kyber blue and Jedi green accents) with real-time telemetry, live Luke Skywalker holographic status card, interactive radar sweep, and accessible HTML5 buttons.
 - 📱 **Mobile-Friendly & Touch-Ready**: Responsive layout optimized for smartphones and tablets, featuring an on-screen Virtual D-Pad, touch action buttons (Lightsaber attack, Use item), and swipe navigation.
-- 🎨 **Pixel-Perfect 256-Color Graphics**: Real-time decoding of the 2,123 32×32 tiles from `YODESK.DTA` using the authentic 256-color palette with crisp nearest-neighbor upscaling.
+- 🎨 **Pixel-Perfect 256-Color Graphics**: Real-time decoding of the 2,123 32×32 tiles from `YODESK.DTA` using the authentic LucasArts 256-color master palette extracted from `Yodesk.exe`.
 - 🔊 **Web Audio Sound & Music**: Direct playback of all original 11025 Hz / 22050 Hz PCM `.wav` sound effects and musical stings (`opening.wav`, `saber.wav`, `blaster.wav`, `cantina.wav`, `r2d2.wav`, `youwin.wav`).
-- 🌍 **Multilingual Localization (i18n)**: Real-time language switching between **English**, **Português do Brasil**, **简体中文**, **Русский**, and **Deutsch** for all UI commands, dialogs, item names, and quest hints.
+- 🌍 **Automatic Regional Localization (i18n)**: Automatically launches in the user's native regional language (**English**, **Português do Brasil**, **简体中文**, **Русский**, and **Deutsch**) with live on-the-fly language switching for all HUD commands, dialogs, item names, and quest hints.
 - ⚡ **Instant Vercel Deployment**: Ultra-fast Vite build (<250ms) ready for deployment to Vercel, GitHub Pages, or any modern edge hosting.
 
 ---

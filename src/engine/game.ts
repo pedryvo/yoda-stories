@@ -170,9 +170,30 @@ export class YodaGame {
     };
     this.state.planetName = planetMap[this.currentZone.planet] || 'Dagobah';
 
-    // Spawn Luke near center of zone
-    this.state.heroX = Math.floor(this.currentZone.width / 2);
-    this.state.heroY = Math.floor(this.currentZone.height / 2);
+    // Spawn Luke near center of zone at the nearest walkable clearing
+    const centerX = Math.floor(this.currentZone.width / 2);
+    const centerY = Math.floor(this.currentZone.height / 2);
+    let bestX = centerX;
+    let bestY = centerY;
+    let bestDist = Infinity;
+
+    for (let y = 0; y < this.currentZone.height; y++) {
+      for (let x = 0; x < this.currentZone.width; x++) {
+        const t1 = this.currentZone.tileIDs[(y * this.currentZone.width + x) * 3 + 1];
+        const t2 = this.currentZone.tileIDs[(y * this.currentZone.width + x) * 3 + 2];
+        // Walkable: no solid obstacle on Layer 1 (t1 <= 0) and has ground floor (t2 > 0)
+        if (t1 <= 0 && t2 > 0) {
+          const dist = Math.hypot(x - centerX, y - centerY);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestX = x;
+            bestY = y;
+          }
+        }
+      }
+    }
+    this.state.heroX = bestX;
+    this.state.heroY = bestY;
 
     this.notifyState();
   }

@@ -68,7 +68,8 @@ export class TileRenderer {
         const zx = cameraTileX + vx;
         const zy = cameraTileY + vy;
         const tileId = getZoneTileId(zx, zy, 2);
-        if (tileId >= 0 && tileId < tiles.length) {
+        // Only draw valid tiles (tileId > 0, 0 is null/empty placeholder in DTA)
+        if (tileId > 0 && tileId < tiles.length) {
           const tile = tiles[tileId];
           targetCtx.drawImage(this.getTileCanvas(tile), vx * TILE_SIZE, vy * TILE_SIZE);
         }
@@ -81,7 +82,7 @@ export class TileRenderer {
         const zx = cameraTileX + vx;
         const zy = cameraTileY + vy;
         const tileId = getZoneTileId(zx, zy, 1);
-        if (tileId >= 0 && tileId < tiles.length) {
+        if (tileId > 0 && tileId < tiles.length) {
           const tile = tiles[tileId];
           targetCtx.drawImage(this.getTileCanvas(tile), vx * TILE_SIZE, vy * TILE_SIZE);
         }
@@ -98,11 +99,11 @@ export class TileRenderer {
       heroScreenY >= -TILE_SIZE &&
       heroScreenY <= CANVAS_HEIGHT
     ) {
-      if (heroTileId >= 0 && heroTileId < tiles.length) {
+      if (heroTileId > 0 && heroTileId < tiles.length) {
         targetCtx.drawImage(this.getTileCanvas(tiles[heroTileId]), heroScreenX, heroScreenY);
       }
       // Render attack weapon swing effect if attacking
-      if (isAttacking && weaponTileId >= 0 && weaponTileId < tiles.length) {
+      if (isAttacking && weaponTileId > 0 && weaponTileId < tiles.length) {
         targetCtx.drawImage(this.getTileCanvas(tiles[weaponTileId]), heroScreenX, heroScreenY);
       }
     }
@@ -113,7 +114,7 @@ export class TileRenderer {
         const zx = cameraTileX + vx;
         const zy = cameraTileY + vy;
         const tileId = getZoneTileId(zx, zy, 0);
-        if (tileId >= 0 && tileId < tiles.length) {
+        if (tileId > 0 && tileId < tiles.length) {
           const tile = tiles[tileId];
           targetCtx.drawImage(this.getTileCanvas(tile), vx * TILE_SIZE, vy * TILE_SIZE);
         }

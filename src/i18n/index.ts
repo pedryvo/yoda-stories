@@ -13,19 +13,36 @@ const translations: Record<SupportedLanguage, TranslationDictionary> = {
   de,
 };
 
-let currentLanguage: SupportedLanguage = 'en';
+export function detectUserLanguage(): SupportedLanguage {
+  // 1. Check if user already has an explicit preference in localStorage
+  if (typeof localStorage !== 'undefined') {
+    const saved = localStorage.getItem('yoda_language') as SupportedLanguage;
+    if (saved && translations[saved]) {
+      return saved;
+    }
+  }
 
-// Detect browser default language
-const browserLang = typeof navigator !== 'undefined' ? navigator.language : 'en';
-if (browserLang.startsWith('pt')) {
-  currentLanguage = 'pt-BR';
-} else if (browserLang.startsWith('zh')) {
-  currentLanguage = 'zh-CN';
-} else if (browserLang.startsWith('ru')) {
-  currentLanguage = 'ru';
-} else if (browserLang.startsWith('de')) {
-  currentLanguage = 'de';
+  // 2. Auto-detect from browser locale & regional settings
+  if (typeof navigator !== 'undefined') {
+    const candidates = navigator.languages && navigator.languages.length
+      ? navigator.languages
+      : [navigator.language || ''];
+
+    for (const raw of candidates) {
+      if (!raw) continue;
+      const lower = raw.toLowerCase();
+      if (lower.startsWith('pt')) return 'pt-BR';
+      if (lower.startsWith('zh')) return 'zh-CN';
+      if (lower.startsWith('ru')) return 'ru';
+      if (lower.startsWith('de')) return 'de';
+      if (lower.startsWith('en')) return 'en';
+    }
+  }
+
+  return 'en';
 }
+
+let currentLanguage: SupportedLanguage = detectUserLanguage();
 
 const listeners: Array<(lang: SupportedLanguage, t: TranslationDictionary) => void> = [];
 
@@ -36,6 +53,9 @@ export function getLanguage(): SupportedLanguage {
 export function setLanguage(lang: SupportedLanguage): void {
   if (translations[lang]) {
     currentLanguage = lang;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('yoda_language', lang);
+    }
     const t = translations[lang];
     listeners.forEach((fn) => fn(lang, t));
   }
