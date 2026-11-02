@@ -1,0 +1,146 @@
+[
+  {
+    "type": "popup",
+    "title": "&File",
+    "items": [
+      {
+        "type": "item",
+        "id": 32776,
+        "title": "&New World\tCtrl+N",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 32779,
+        "title": "&Replay Story\tCtrl+R",
+        "flags": 2
+      },
+      {
+        "type": "item",
+        "id": 32778,
+        "title": "&Load World\tCtrl+L",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 57603,
+        "title": "&Save World\tCtrl+S",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 0,
+        "title": "",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 57665,
+        "title": "E&xit\tCtrl+X",
+        "flags": 128
+      }
+    ]
+  },
+  {
+    "type": "popup",
+    "title": "&Options",
+    "items": [
+      {
+        "type": "item",
+        "id": 32773,
+        "title": "&Combat Difficulty...\tCtrl+C",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 32780,
+        "title": "&Game Speed...\tCtrl+G",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 32781,
+        "title": "&World Control...\tCtrl+W",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 32782,
+        "title": "S&tatistics... \tCtrl+T",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 0,
+        "title": "",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 32768,
+        "title": "&Sound On\tCtrl+E",
+        "flags": 8
+      },
+      {
+        "type": "item",
+        "id": 32772,
+        "title": "&Music On\tCtrl+M",
+        "flags": 8
+      },
+      {
+        "type": "item",
+        "id": 0,
+        "title": "",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 32770,
+        "title": "&Pause\tP",
+        "flags": 128
+      }
+    ]
+  },
+  {
+    "type": "popup",
+    "title": "&Window",
+    "items": [
+      {
+        "type": "item",
+        "id": 32769,
+        "title": "&Hide Me!\tCtrl+H",
+        "flags": 128
+      }
+    ]
+  },
+  {
+    "type": "popup",
+    "title": "&Help",
+    "items": [
+      {
+        "type": "item",
+        "id": 57666,
+        "title": "&How to Play\tF1",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 57668,
+        "title": "&Using Help\tCtrl+U",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 0,
+        "title": "",
+        "flags": 0
+      },
+      {
+        "type": "item",
+        "id": 57664,
+        "title": "&About...\tCtrl+A",
+        "flags": 128
+      }
+    ]
+  }
+]

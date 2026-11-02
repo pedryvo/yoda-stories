@@ -1,0 +1,226 @@
+{
+  "100": {
+    "offset": 386492,
+    "size": 842,
+    "strings": [
+      "Yoda Stories",
+      "MS Sans Serif",
+      "Yoda(tm) Stories",
+      "1997 Lucasfilm Ltd. and LucasArts Entertainment Company.  All Rights Reserved.",
+      "OK",
+      "                        Team Yoda",
+      "        Hal Barwood    Rachael Bristol",
+      "        Jesse Clark      Wayne Cline",
+      "        Mark Crowley   Tom Payne",
+      "        Randy Tudor    Martin Yee",
+      "Ar",
+      "Version 1.00"
+    ]
+  },
+  "111": {
+    "offset": 387336,
+    "size": 298,
+    "strings": [
+      "Combat Difficulty",
+      "MS Sans Serif",
+      "-%",
+      "OK",
+      "X-%",
+      "Cancel",
+      "Easy",
+      "Medium",
+      "Hard"
+    ]
+  },
+  "134": {
+    "offset": 387636,
+    "size": 184,
+    "strings": [
+      "xC",
+      "MS Sans Serif",
+      "T1p",
+      "UPA",
+      "DNA",
+      "c,",
+      "CLOSE"
+    ]
+  },
+  "147": {
+    "offset": 387820,
+    "size": 246,
+    "strings": [
+      "(2u4",
+      "Cheat! Go To Zone...",
+      "MS Sans Serif",
+      "!2",
+      "OK",
+      "=!2",
+      "Cancel",
+      "Go to zone: "
+    ]
+  },
+  "191": {
+    "offset": 388068,
+    "size": 506,
+    "strings": [
+      "Current Status Info",
+      "MS Sans Serif",
+      "5,#",
+      "OK",
+      "Current Zone is #:",
+      "X:",
+      "Y:",
+      "E:"
+    ]
+  },
+  "193": {
+    "offset": 388576,
+    "size": 260,
+    "strings": [
+      "~I",
+      "Cheat!  Add Item to Inventory...",
+      "MS Sans Serif",
+      "4(",
+      "OK",
+      "G4(",
+      "Cancel",
+      "Item #:"
+    ]
+  },
+  "204": {
+    "offset": 388836,
+    "size": 338,
+    "strings": [
+      "s^",
+      "Chosen Zone Items:",
+      "MS Sans Serif",
+      "!I2",
+      "OK",
+      "Required:",
+      "Placed:",
+      "*,",
+      "Character:",
+      "B*"
+    ]
+  },
+  "206": {
+    "offset": 389176,
+    "size": 82,
+    "strings": [
+      "MS Sans Serif"
+    ]
+  },
+  "207": {
+    "offset": 389260,
+    "size": 274,
+    "strings": [
+      "Build Repeated Worlds",
+      "MS Sans Serif",
+      "&*2",
+      "OK",
+      "b*2",
+      "Cancel",
+      "Number of worlds to build:"
+    ]
+  },
+  "215": {
+    "offset": 389536,
+    "size": 286,
+    "strings": [
+      "Game Speed",
+      "MS Sans Serif",
+      "-%",
+      "OK",
+      "X-%",
+      "Cancel",
+      "Fast",
+      "Normal",
+      "Slow"
+    ]
+  },
+  "218": {
+    "offset": 389824,
+    "size": 354,
+    "strings": [
+      "World Control",
+      "MS Sans Serif",
+      "1%",
+      "OK",
+      "X1%",
+      "Cancel",
+      "Small",
+      "v\"",
+      "Large",
+      "Make NEXT World...",
+      "?\"!",
+      "Medium"
+    ]
+  },
+  "223": {
+    "offset": 390180,
+    "size": 1050,
+    "strings": [
+      "Test World Option",
+      "MS Sans Serif",
+      "{/(",
+      "{J(",
+      "{](",
+      "{p(",
+      "Yes",
+      "No",
+      "If you wish to build a test world, enter the zone number to be tested, and the zone number to surround it with.",
+      "Test Zone Number:",
+      "2U",
+      "Surrounding Zone Number:",
+      "M/",
+      "Required Item:",
+      "s3",
+      "Can Place Item:",
+      "a5",
+      "Required Item 2:",
+      "0D",
+      "Select world terrain type:",
+      "Test Specific Ending:"
+    ]
+  },
+  "224": {
+    "offset": 391232,
+    "size": 138,
+    "strings": [
+      "Dialog",
+      "MS Sans Serif",
+      "OK",
+      "Cancel"
+    ]
+  },
+  "225": {
+    "offset": 391372,
+    "size": 482,
+    "strings": [
+      "Player Statistics",
+      "MS Sans Serif",
+      "Last Score:",
+      "High Score:",
+      "I&+",
+      "Games Won:",
+      "K6)",
+      "Games Lost:",
+      "{&",
+      "{6"
+    ]
+  },
+  "30721": {
+    "offset": 406892,
+    "size": 232,
+    "strings": [
+      "New",
+      "MS Sans Serif",
+      "&New ",
+      "}1d",
+      "OK",
+      "Cancel",
+      "+(",
+      "&Help"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+# Dependencies and build outputs
+node_modules/
+dist/
+.vercel/
+
+# Original Windows binaries and legacy files in root
+Yodesk.exe
+/yodesk.dta
+/bitmaps/
+/sfx/
+setup.exe
+DeIsL1.isu
+Install/
+MSVCRT40.DLL
+wavmix32.dll
+Yodaplay.exe
+Yodesk.hlp
+Yodesk.cnt
+Yodesk.gid
+AUTORUN.INF
+Making Magic.pif
+Register On-line.url
+Uninstall Yoda Stories.lnk
+Visit www.lucasarts.com.url
+wavemix.ini
+Thumbs.db
+*.tmp
+*.log
+
+# OS metadata
+.DS_Store
+.idea/
+.vscode/

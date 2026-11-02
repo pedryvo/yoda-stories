@@ -1,0 +1,681 @@
+/* LucasArts Star Wars: Yoda Stories - Retro Windows 95 Style */
+
+:root {
+  --win-gray: #c0c0c0;
+  --win-dark-gray: #808080;
+  --win-darkest: #000000;
+  --win-white: #ffffff;
+  --win-blue: #000080;
+  --win-light-blue: #1084d0;
+  --win-active-blue: #000080;
+  --font-retro: 'MS Sans Serif', 'Tahoma', 'Segoe UI', Arial, sans-serif;
+  --canvas-size: 288px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #008080; /* Classic Windows 95 Teal Desktop */
+  font-family: var(--font-retro);
+  font-size: 12px;
+  color: #000000;
+}
+
+.desktop-environment {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  padding: 10px;
+}
+
+/* --- Windows 95 Window Frame --- */
+.win95-window {
+  display: flex;
+  flex-direction: column;
+  background: var(--win-gray);
+  border-top: 2px solid var(--win-white);
+  border-left: 2px solid var(--win-white);
+  border-right: 2px solid var(--win-darkest);
+  border-bottom: 2px solid var(--win-darkest);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 540px;
+}
+
+/* Titlebar */
+.win95-titlebar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: var(--win-white);
+  padding: 3px 4px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.title-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.titlebar-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.title-btn {
+  width: 16px;
+  height: 14px;
+  font-size: 10px;
+  line-height: 10px;
+  font-weight: bold;
+  padding: 0;
+}
+
+/* Win95 Button Base */
+.win95-btn {
+  background: var(--win-gray);
+  border-top: 1px solid var(--win-white);
+  border-left: 1px solid var(--win-white);
+  border-right: 1px solid var(--win-darkest);
+  border-bottom: 1px solid var(--win-darkest);
+  box-shadow: inset -1px -1px 0px var(--win-dark-gray);
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
+
+.win95-btn:active {
+  border-top: 1px solid var(--win-darkest);
+  border-left: 1px solid var(--win-darkest);
+  border-right: 1px solid var(--win-white);
+  border-bottom: 1px solid var(--win-white);
+  box-shadow: inset 1px 1px 0px var(--win-dark-gray);
+  padding-top: 1px;
+}
+
+/* Menu Bar */
+.win95-menubar {
+  display: flex;
+  background: var(--win-gray);
+  border-bottom: 1px solid var(--win-dark-gray);
+  padding: 1px 2px;
+  position: relative;
+}
+
+.menu-item {
+  position: relative;
+}
+
+.win95-menubtn {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 3px 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.win95-menubtn:hover, .menu-item:hover .win95-menubtn {
+  background: var(--win-blue);
+  color: var(--win-white);
+}
+
+/* Dropdowns */
+.win95-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  background: var(--win-gray);
+  border-top: 1px solid var(--win-white);
+  border-left: 1px solid var(--win-white);
+  border-right: 1px solid var(--win-darkest);
+  border-bottom: 1px solid var(--win-darkest);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
+  min-width: 170px;
+  padding: 2px;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--win-darkest);
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: var(--win-blue);
+  color: var(--win-white);
+}
+
+.dropdown-separator {
+  height: 1px;
+  border-top: 1px solid var(--win-dark-gray);
+  border-bottom: 1px solid var(--win-white);
+  margin: 3px 0;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Toolbar */
+.win95-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--win-gray);
+  padding: 3px 4px;
+  border-bottom: 2px groove var(--win-white);
+  overflow-x: auto;
+}
+
+.win95-toolbtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--win-gray);
+  border-top: 1px solid var(--win-white);
+  border-left: 1px solid var(--win-white);
+  border-right: 1px solid var(--win-darkest);
+  border-bottom: 1px solid var(--win-darkest);
+  box-shadow: inset -1px -1px 0px var(--win-dark-gray);
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.win95-toolbtn:active, .win95-toolbtn.active {
+  background: #d8d8d8;
+  border-top: 1px solid var(--win-darkest);
+  border-left: 1px solid var(--win-darkest);
+  border-right: 1px solid var(--win-white);
+  border-bottom: 1px solid var(--win-white);
+  box-shadow: inset 1px 1px 0px var(--win-dark-gray);
+}
+
+.toolbar-separator {
+  width: 2px;
+  height: 20px;
+  border-left: 1px solid var(--win-dark-gray);
+  border-right: 1px solid var(--win-white);
+  margin: 0 4px;
+}
+
+/* Client Area */
+.win95-client-area {
+  display: flex;
+  flex-direction: row;
+  background: #808080;
+  padding: 4px;
+  gap: 4px;
+}
+
+/* Canvas Area */
+.canvas-wrapper {
+  background: #000000;
+  border-top: 2px solid var(--win-darkest);
+  border-left: 2px solid var(--win-darkest);
+  border-right: 2px solid var(--win-white);
+  border-bottom: 2px solid var(--win-white);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.game-canvas {
+  width: var(--canvas-size);
+  height: var(--canvas-size);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+
+/* Sidebar */
+.win95-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--win-gray);
+  border-top: 2px solid var(--win-white);
+  border-left: 2px solid var(--win-white);
+  border-right: 2px solid var(--win-darkest);
+  border-bottom: 2px solid var(--win-darkest);
+  padding: 6px;
+  width: 210px;
+}
+
+.sidebar-section {
+  background: var(--win-gray);
+  border: 1px solid var(--win-dark-gray);
+  padding: 4px;
+}
+
+.hero-status-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-avatar-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-portrait {
+  width: 32px;
+  height: 32px;
+  background: url('/bitmaps/screen.bmp') no-repeat -304px -22px;
+  background-size: 519px 333px;
+  image-rendering: pixelated;
+  border: 1px solid var(--win-dark-gray);
+}
+
+.meters-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meter-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+}
+
+.meter-label {
+  width: 40px;
+}
+
+.progress-bar-wrap {
+  flex: 1;
+  height: 10px;
+  background: #000;
+  border: 1px solid var(--win-dark-gray);
+}
+
+.progress-bar-fill.health {
+  background: #00ff00;
+  height: 100%;
+  transition: width 0.2s;
+}
+
+.progress-bar-fill.force {
+  background: #0088ff;
+  height: 100%;
+  transition: width 0.2s;
+}
+
+/* Equipment */
+.equip-section {
+  display: flex;
+  gap: 4px;
+}
+
+.equip-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.equip-label {
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+
+.slot-display-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  background: var(--win-gray);
+  border-top: 1px solid var(--win-white);
+  border-left: 1px solid var(--win-white);
+  border-right: 1px solid var(--win-darkest);
+  border-bottom: 1px solid var(--win-darkest);
+  box-shadow: inset -1px -1px 0px var(--win-dark-gray);
+  padding: 4px;
+  cursor: pointer;
+}
+
+.slot-display-btn:active {
+  border-top: 1px solid var(--win-darkest);
+  border-left: 1px solid var(--win-darkest);
+  border-right: 1px solid var(--win-white);
+  border-bottom: 1px solid var(--win-white);
+}
+
+.slot-name {
+  font-size: 9px;
+  margin-top: 2px;
+  text-align: center;
+}
+
+/* Locator */
+.locator-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.locator-compass-btn {
+  background: #000;
+  border: 2px solid var(--win-dark-gray);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.compass-dial {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.compass-needle {
+  font-size: 18px;
+  color: #ff0000;
+  transition: transform 0.2s ease-out;
+}
+
+/* Inventory Grid */
+.inventory-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.inv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.inv-scroll-btns {
+  display: flex;
+  gap: 2px;
+}
+
+.inv-scroll-btn {
+  width: 18px;
+  height: 16px;
+  font-size: 8px;
+  padding: 0;
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  background: #000;
+  padding: 2px;
+  border: 1px solid var(--win-dark-gray);
+}
+
+.inv-slot-btn {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #202020;
+  border: 1px solid #404040;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.inv-slot-btn:hover {
+  border-color: #ffff00;
+}
+
+.zone-info-section {
+  font-size: 10px;
+  text-align: center;
+}
+
+/* Status Bar */
+.win95-statusbar {
+  display: flex;
+  gap: 4px;
+  background: var(--win-gray);
+  border-top: 1px solid var(--win-white);
+  padding: 2px;
+}
+
+.status-cell {
+  background: var(--win-gray);
+  border-top: 1px solid var(--win-dark-gray);
+  border-left: 1px solid var(--win-dark-gray);
+  border-right: 1px solid var(--win-white);
+  border-bottom: 1px solid var(--win-white);
+  padding: 2px 6px;
+  font-size: 10px;
+  flex: 1;
+}
+
+/* --- Virtual Touch Controls for Mobile --- */
+.virtual-controls-container {
+  display: none;
+  width: 100%;
+  max-width: 500px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  margin-top: 6px;
+}
+
+.virtual-dpad {
+  display: grid;
+  grid-template-areas:
+    ". up ."
+    "left center right"
+    ". down .";
+  gap: 4px;
+  width: 130px;
+  height: 130px;
+}
+
+.dpad-btn {
+  background: var(--win-gray);
+  border: 2px solid var(--win-white);
+  border-right-color: var(--win-darkest);
+  border-bottom-color: var(--win-darkest);
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 4px;
+}
+
+.dpad-up { grid-area: up; }
+.dpad-left { grid-area: left; }
+.dpad-center { grid-area: center; font-size: 10px; background: #a0a0a0; }
+.dpad-right { grid-area: right; }
+.dpad-down { grid-area: down; }
+
+.dpad-btn:active {
+  background: #808080;
+  border: 2px solid var(--win-darkest);
+  border-right-color: var(--win-white);
+  border-bottom-color: var(--win-white);
+}
+
+.virtual-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.action-btn {
+  width: 64px;
+  height: 64px;
+  background: var(--win-gray);
+  border: 2px solid var(--win-white);
+  border-right-color: var(--win-darkest);
+  border-bottom-color: var(--win-darkest);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.action-btn label {
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.action-btn:active {
+  background: #808080;
+  border: 2px solid var(--win-darkest);
+  border-right-color: var(--win-white);
+  border-bottom-color: var(--win-white);
+}
+
+/* --- Modals --- */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.win95-dialog {
+  background: var(--win-gray);
+  border-top: 2px solid var(--win-white);
+  border-left: 2px solid var(--win-white);
+  border-right: 2px solid var(--win-darkest);
+  border-bottom: 2px solid var(--win-darkest);
+  box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+  min-width: 320px;
+  max-width: 90vw;
+}
+
+.dialog-titlebar {
+  padding: 2px 4px;
+}
+
+.dialog-body {
+  padding: 12px;
+  font-size: 11px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--win-dark-gray);
+}
+
+.dialog-action-btn {
+  min-width: 70px;
+  padding: 4px 8px;
+}
+
+.message-dialog-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dialog-avatar-canvas {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+  border: 1px solid var(--win-dark-gray);
+}
+
+/* Mobile & Touch Responsive Query */
+@media (max-width: 768px), (pointer: coarse) {
+  .desktop-environment {
+    padding: 0;
+    justify-content: flex-start;
+  }
+
+  .win95-window {
+    min-width: 100vw;
+    width: 100vw;
+    border: none;
+    box-shadow: none;
+  }
+
+  .win95-client-area {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .canvas-wrapper {
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .game-canvas {
+    width: 100% !important;
+    max-width: 320px;
+    height: auto !important;
+    aspect-ratio: 1;
+  }
+
+  .win95-sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+  }
+
+  .sidebar-section {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .virtual-controls-container {
+    display: flex;
+  }
+
+  body {
+    overflow-y: auto;
+  }
+}
