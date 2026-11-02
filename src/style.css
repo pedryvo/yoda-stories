@@ -289,10 +289,12 @@ html, body {
 .hero-portrait {
   width: 32px;
   height: 32px;
-  background: url('/bitmaps/screen.bmp') no-repeat -304px -22px;
-  background-size: 519px 333px;
+  background: #000;
   image-rendering: pixelated;
   border: 1px solid var(--win-dark-gray);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .meters-col {

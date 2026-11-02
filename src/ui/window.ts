@@ -146,7 +146,9 @@ export class GameWindow {
       <!-- Luke Skywalker Health & Portrait -->
       <div class="sidebar-section hero-status-card">
         <div class="hero-avatar-box">
-          <div class="hero-portrait" id="hero-portrait"></div>
+          <div class="hero-portrait" id="hero-portrait">
+            <canvas id="cvs-hero-portrait" width="32" height="32"></canvas>
+          </div>
           <div class="meters-col">
             <div class="meter-group">
               <span class="meter-label">${t().sidebar.health}:</span>
@@ -418,6 +420,17 @@ export class GameWindow {
 
     // Draw Weapon & Item icons
     if (this.game.dta) {
+      // Draw Luke's face portrait
+      const portraitCvs = this.container.querySelector<HTMLCanvasElement>('#cvs-hero-portrait');
+      if (portraitCvs) {
+        const heroTile = this.game.dta.tiles[799];
+        if (heroTile) {
+          const pCtx = portraitCvs.getContext('2d')!;
+          pCtx.clearRect(0, 0, 32, 32);
+          pCtx.drawImage(this.game.renderer.getTileCanvas(heroTile), 0, 0);
+        }
+      }
+
       if (st.equippedWeapon) {
         const cvs = this.container.querySelector<HTMLCanvasElement>('#cvs-weapon-icon');
         if (cvs) {

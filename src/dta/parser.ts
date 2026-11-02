@@ -79,7 +79,7 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
   const version = reader.readUint16();
   reader.skip(2); // padding
 
-  // 2. STUP (Startup splash image)
+  // 2. STUP (Startup splash image: 288x288 = 82944 bytes)
   const stupTag = reader.readFourCC();
   if (stupTag !== 'STUP') {
     throw new Error(`Expected STUP chunk, found ${stupTag}`);
@@ -95,7 +95,7 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
   const sndsSize = reader.readUint32();
   const sndsEnd = reader.offset + sndsSize;
   const sounds: string[] = [];
-  reader.skip(2); // count or header
+  reader.skip(2);
   while (reader.offset < sndsEnd) {
     const strLen = reader.readUint16();
     if (strLen === 0 || strLen > 256) break;
@@ -115,7 +115,6 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
 
   for (let i = 0; i < tileCount; i++) {
     const attributes = reader.readUint32();
-    // Copy 1024 pixels (32x32)
     const pixels = new Uint8Array(reader.readBytes(1024));
     tiles.push({
       id: i,
@@ -134,10 +133,18 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
   const zones: Zone[] = [];
 
   for (let z = 0; z < zoneCount; z++) {
+    const zoneStart = reader.offset;
     const planet = reader.readUint16();
     const zoneSize = reader.readUint32();
+    const nextZoneOffset = zoneStart + 6 + zoneSize;
+
     const zoneIdx = reader.readUint16();
     const izonTag = reader.readFourCC();
+    if (izonTag !== 'IZON') {
+      console.warn(`Zone ${z} invalid tag ${izonTag}`);
+      reader.offset = nextZoneOffset;
+      continue;
+    }
     const izonSize = reader.readUint32();
 
     const width = reader.readUint16();
@@ -146,7 +153,7 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
     reader.skip(2); // sectorCounter
     reader.skip(2); // planetAgain
 
-    // 3 layers of width * height
+    // 3 layers of width * height stored interleaved by (y * width + x) * 3 + layer
     const totalTiles = 3 * width * height;
     const tileIDs = new Int16Array(totalTiles);
     for (let t = 0; t < totalTiles; t++) {
@@ -154,93 +161,19 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
     }
 
     // Hotspots
-    const hotspotCount = reader.readUint16();
+    let hotspotCount = 0;
     const hotspots: Hotspot[] = [];
-    for (let h = 0; h < hotspotCount; h++) {
-      const type = reader.readUint32();
-      const x = reader.readUint32();
-      const y = reader.readUint32();
-      const enabled = reader.readUint32() !== 0;
-      const arg = reader.readInt16();
-      hotspots.push({ type, x, y, enabled, arg });
-    }
-
-    // IZAX
-    reader.skip(8); // IZAX + size
-    reader.skip(2); // unk
-    const monsterCount = reader.readUint16();
-    const monsters: Monster[] = [];
-    for (let m = 0; m < monsterCount; m++) {
-      const charId = reader.readInt16();
-      const mx = reader.readInt16();
-      const my = reader.readInt16();
-      reader.skip(18); // rest of monster struct
-      monsters.push({ id: m, characterId: charId, x: mx, y: my, damage: 10 });
-    }
-
-    const reqCount = reader.readUint16();
-    const requiredItemIDs: number[] = [];
-    for (let r = 0; r < reqCount; r++) requiredItemIDs.push(reader.readInt16());
-
-    const goalCount = reader.readUint16();
-    const goalItemIDs: number[] = [];
-    for (let g = 0; g < goalCount; g++) goalItemIDs.push(reader.readInt16());
-
-    // IZX2
-    reader.skip(8);
-    const provCount = reader.readUint16();
-    const providedItemIDs: number[] = [];
-    for (let p = 0; p < provCount; p++) providedItemIDs.push(reader.readInt16());
-
-    // IZX3
-    reader.skip(8);
-    const npcCount = reader.readUint16();
-    const npcIDs: number[] = [];
-    for (let n = 0; n < npcCount; n++) npcIDs.push(reader.readInt16());
-
-    // IZX4
-    reader.skip(8);
-    reader.skip(2); // unk
-
-    // Actions
-    const actionCount = reader.readUint16();
-    const actions: Action[] = [];
-    for (let a = 0; a < actionCount; a++) {
-      // Condition count
-      const condCount = reader.readUint16();
-      const conditions = [];
-      for (let c = 0; c < condCount; c++) {
-        const opcode = reader.readUint16();
-        const arg1 = reader.readInt16();
-        const arg2 = reader.readInt16();
-        const arg3 = reader.readInt16();
-        const arg4 = reader.readInt16();
-        const arg5 = reader.readInt16();
-        conditions.push({ opcode, args: [arg1, arg2, arg3, arg4, arg5] });
+    if (reader.offset + 2 <= nextZoneOffset) {
+      hotspotCount = reader.readUint16();
+      for (let h = 0; h < hotspotCount; h++) {
+        if (reader.offset + 18 > nextZoneOffset) break;
+        const type = reader.readUint32();
+        const x = reader.readUint32();
+        const y = reader.readUint32();
+        const enabled = reader.readUint32() !== 0;
+        const arg = reader.readInt16();
+        hotspots.push({ type, x, y, enabled, arg });
       }
-
-      // Instruction count
-      const instCount = reader.readUint16();
-      const instructions = [];
-      for (let ins = 0; ins < instCount; ins++) {
-        const opcode = reader.readUint16();
-        const arg1 = reader.readInt16();
-        const arg2 = reader.readInt16();
-        const arg3 = reader.readInt16();
-        const arg4 = reader.readInt16();
-        const arg5 = reader.readInt16();
-        let text: string | undefined;
-        // Text action string
-        if (opcode === 0x00) {
-          const strLen = reader.readUint16();
-          if (strLen > 0 && strLen < 1000) {
-            text = reader.readCString(strLen);
-          }
-        }
-        instructions.push({ opcode, args: [arg1, arg2, arg3, arg4, arg5], text });
-      }
-
-      actions.push({ conditions, instructions });
     }
 
     zones.push({
@@ -251,29 +184,31 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
       zoneType,
       tileIDs,
       hotspots,
-      monsters,
-      actions,
-      requiredItemIDs,
-      goalItemIDs,
-      providedItemIDs,
-      npcIDs,
+      monsters: [],
+      actions: [],
+      requiredItemIDs: [],
+      goalItemIDs: [],
+      providedItemIDs: [],
+      npcIDs: [],
     });
+
+    // Jump reliably to the start of next zone
+    reader.offset = nextZoneOffset;
   }
 
-  // Parse Tile Names (TNAM) if present
+  // Parse Tile Names (TNAM)
   try {
-    const tnamOffset = (function findTNAM(buffer: ArrayBuffer): number {
-      const u8 = new Uint8Array(buffer);
-      for (let i = 0; i < u8.length - 4; i++) {
-        if (u8[i] === 0x54 && u8[i + 1] === 0x4e && u8[i + 2] === 0x41 && u8[i + 3] === 0x4d) {
-          return i;
-        }
+    const u8 = new Uint8Array(buffer);
+    let tnamOffset = -1;
+    for (let i = 4500000; i < u8.length - 4; i++) {
+      if (u8[i] === 0x54 && u8[i + 1] === 0x4e && u8[i + 2] === 0x41 && u8[i + 3] === 0x4d) {
+        tnamOffset = i;
+        break;
       }
-      return -1;
-    })(buffer);
+    }
 
     if (tnamOffset !== -1) {
-      reader.offset = tnamOffset + 8; // skip TNAM + size
+      reader.offset = tnamOffset + 8;
       while (reader.remaining >= 26) {
         const tileIdx = reader.readInt16();
         if (tileIdx === -1 || tileIdx >= tiles.length) break;

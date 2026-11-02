@@ -28,8 +28,10 @@ export class AudioManager {
       return this.soundCache.get(name)!;
     }
     try {
+      const base = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || '/';
       const filename = name.endsWith('.wav') ? name : `${name}.wav`;
-      const res = await fetch(`/sfx/${filename}`);
+      const url = `${base}sfx/${filename}`.replace(/\/{2,}/g, '/');
+      const res = await fetch(url);
       if (!res.ok) {
         console.warn(`Sound not found: /sfx/${filename}`);
         return null;

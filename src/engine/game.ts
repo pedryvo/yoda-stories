@@ -100,8 +100,10 @@ export class YodaGame {
 
   public async init(dtaBuffer?: ArrayBuffer): Promise<void> {
     if (!dtaBuffer) {
-      const res = await fetch('/yodesk.dta');
-      if (!res.ok) throw new Error('Could not load yodesk.dta from /yodesk.dta');
+      const base = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || '/';
+      const url = `${base}yodesk.dta`.replace(/\/{2,}/g, '/');
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Could not load yodesk.dta (${res.status} ${res.statusText})`);
       dtaBuffer = await res.arrayBuffer();
     }
 
@@ -146,7 +148,7 @@ export class YodaGame {
 
     // Find Dagobah starting zone (Swamp planet = 2)
     let startZoneIdx = this.dta.zones.findIndex(
-      (z) => z.planet === 2 && z.width === 9 && z.height === 9
+      (z) => z.planet === 2 && z.tileIDs.length > 0
     );
     if (startZoneIdx === -1) startZoneIdx = 0;
 
@@ -193,8 +195,7 @@ export class YodaGame {
     }
 
     // Check collision against solid layer 1 tiles
-    const layerSize = this.currentZone.width * this.currentZone.height;
-    const tile1Id = this.currentZone.tileIDs[1 * layerSize + targetY * this.currentZone.width + targetX];
+    const tile1Id = this.currentZone.tileIDs[(targetY * this.currentZone.width + targetX) * 3 + 1];
 
     if (tile1Id > 0 && this.dta) {
       const tile = this.dta.tiles[tile1Id];

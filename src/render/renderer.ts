@@ -55,13 +55,11 @@ export class TileRenderer {
     targetCtx.fillStyle = '#000000';
     targetCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    const layerSize = zone.width * zone.height;
-
-    // Helper to get tile from zone coordinates
+    // Helper to get tile from zone coordinates (tiles stored interleaved: layer 0, 1, 2)
     const getZoneTileId = (x: number, y: number, layer: number): number => {
       if (x < 0 || x >= zone.width || y < 0 || y >= zone.height) return -1;
-      const idx = layer * layerSize + y * zone.width + x;
-      return zone.tileIDs[idx];
+      const idx = (y * zone.width + x) * 3 + layer;
+      return zone.tileIDs[idx] ?? -1;
     };
 
     // Layer 0: Background

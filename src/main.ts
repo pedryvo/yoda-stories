@@ -11,6 +11,18 @@ async function bootstrap() {
   const gameWindow = new GameWindow(game, root);
   new VirtualPad(game, root);
 
+  // Render initial loading screen so canvas is never a blank black screen
+  const ctx = gameWindow.ctx;
+  ctx.fillStyle = '#000080';
+  ctx.fillRect(0, 0, 288, 288);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 15px "MS Sans Serif", Tahoma, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Star Wars: Yoda Stories', 144, 120);
+  ctx.font = '12px "MS Sans Serif", Tahoma, sans-serif';
+  ctx.fillStyle = '#ffff00';
+  ctx.fillText('Loading adventure assets...', 144, 150);
+
   // Keyboard Event Handling
   const keysPressed: Record<string, boolean> = {};
 
@@ -69,7 +81,7 @@ async function bootstrap() {
     keysPressed[e.key] = false;
   });
 
-  // Movement ticker (fixed rate for fluid retro movement)
+  // Movement ticker
   let moveCooldown = 0;
   function handleMovementInput() {
     if (moveCooldown > 0) {
@@ -92,7 +104,7 @@ async function bootstrap() {
 
     if (dx !== 0 || dy !== 0) {
       game.moveHero(dx, dy);
-      moveCooldown = 9; // smooth movement step delay
+      moveCooldown = 8;
     }
   }
 
@@ -105,16 +117,21 @@ async function bootstrap() {
   }
 
   try {
-    console.log('Loading Yoda Stories...');
+    console.log('Loading Yoda Stories yodesk.dta...');
     await game.init();
     console.log('Game initialized successfully!');
-  } catch (err) {
-    console.error('Failed to load assets, starting in standalone mode:', err);
-    gameWindow.showMessageModal('Notice', 'Loading assets from public storage...');
+    requestAnimationFrame(gameLoop);
+  } catch (err: any) {
+    console.error('Failed to load yodesk.dta:', err);
+    ctx.fillStyle = '#800000';
+    ctx.fillRect(0, 0, 288, 288);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 13px "MS Sans Serif", Tahoma, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Error loading assets', 144, 120);
+    ctx.font = '10px "MS Sans Serif", Tahoma, sans-serif';
+    ctx.fillText(String(err?.message || err), 144, 150);
   }
-
-  // Start the RAF render loop
-  requestAnimationFrame(gameLoop);
 }
 
 window.addEventListener('DOMContentLoaded', bootstrap);
