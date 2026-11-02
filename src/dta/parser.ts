@@ -176,6 +176,41 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
       }
     }
 
+    // IZAX/IZX2/IZX3 sizes include their eight-byte header. IZX4's size
+    // counts only its payload. Actions follow IZX4 as a counted IACT list.
+    for (const tag of ['IZAX', 'IZX2', 'IZX3', 'IZX4']) {
+      const start = reader.offset;
+      if (reader.readFourCC() !== tag) throw new Error(`Zone ${zoneIdx}: expected ${tag}`);
+      const size = reader.readUint32();
+      const end = start + size + (tag === 'IZX4' ? 8 : 0);
+      if (end < reader.offset || end > nextZoneOffset) throw new Error(`Zone ${zoneIdx}: invalid ${tag} size`);
+      reader.offset = end;
+    }
+    const actions: Action[] = [];
+    const actionCount = reader.readUint16();
+    for (let a = 0; a < actionCount; a++) {
+      if (reader.readFourCC() !== 'IACT') throw new Error(`Zone ${zoneIdx}: expected IACT`);
+      const size = reader.readUint32();
+      const end = reader.offset + size;
+      if (end > nextZoneOffset) throw new Error(`Zone ${zoneIdx}: invalid IACT size`);
+      const readCommands = () => {
+        const count = reader.readUint16();
+        const commands = [];
+        for (let c = 0; c < count; c++) {
+          if (reader.offset + 14 > end) throw new Error(`Zone ${zoneIdx}: truncated command`);
+          const opcode = reader.readUint16();
+          const args = Array.from({ length: 5 }, () => reader.readInt16());
+          const textLength = reader.readUint16();
+          if (reader.offset + textLength > end) throw new Error(`Zone ${zoneIdx}: truncated dialogue`);
+          const text = reader.readCString(textLength);
+          commands.push({ opcode, args, text });
+        }
+        return commands;
+      };
+      actions.push({ conditions: readCommands(), instructions: readCommands() });
+      if (reader.offset !== end) throw new Error(`Zone ${zoneIdx}: unexpected action payload`);
+    }
+
     zones.push({
       id: zoneIdx,
       planet,
@@ -185,7 +220,7 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
       tileIDs,
       hotspots,
       monsters: [],
-      actions: [],
+      actions,
       requiredItemIDs: [],
       goalItemIDs: [],
       providedItemIDs: [],

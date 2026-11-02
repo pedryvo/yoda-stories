@@ -13,6 +13,9 @@ async function bootstrap() {
 
   // Render initial Star Wars Sci-Fi loading screen
   const ctx = gameWindow.ctx;
+  ctx.canvas.addEventListener('click', () => {
+    if (game.showingStartup) game.newWorld();
+  });
   ctx.fillStyle = '#07090e';
   ctx.fillRect(0, 0, 288, 288);
   ctx.fillStyle = '#ffe81f';
@@ -73,7 +76,8 @@ async function bootstrap() {
 
     if (e.key === 'Enter') {
       e.preventDefault();
-      game.useEquippedItem();
+      if (game.showingStartup) game.newWorld();
+      else game.useEquippedItem();
       return;
     }
 

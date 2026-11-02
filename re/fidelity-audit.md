@@ -43,3 +43,36 @@ checks the original DTA hotspots, draw order, canopy traversal, solid objects,
 missing floor, save coordinates and paused item use. `npm run build` checks
 TypeScript and production bundling. Browser verification could not run: binding
 Vite to 127.0.0.1:3000 returned EPERM in this session's sandbox.
+
+## REA follow-up after permissions were enabled
+
+The REA MCP is now working with Ghidra 12.1.2. Executable SHA-256:
+`4d9876339d494cab141c3f4178f37a2725d178e41c7785887c84d021a8e695e7`.
+
+- `00426110`, evidence `ev_38f4f3911b2973555a59eea5f79761623bbd53b5bfb32a1475061d791570bed6`,
+  identifies STUP and invokes `00426620` to load it before world creation.
+- `00426620`, evidence `ev_7c30f00568029c140e33627be805dc73103eb297ae541b7b24b0cf954544e4b9`,
+  reads 288 rows of 288 indexed pixels. Startup now displays this image and waits
+  for New Game, Enter or a playfield click. Click/Enter are web conveniences.
+- `004047d0`, evidence `ev_2ea0206fccf7a643dbd0f6df8938bf6cb1a532c6d86db52827105eb18a113459`,
+  initializes a generated 10x10 world and calls the Dagobah setup `004286f0`.
+- `004286f0`, evidence `ev_15b14cd6c2a1b48c70b2de04e87581772c3d514749a27a2e0602fcfc4a43494c`,
+  places sectors 94/95/93/96 in Dagobah, sets starting world cell (4,5),
+  and pixel coordinates (320,320). New Game now starts in sector 93 at (10,10),
+  replacing random catalog selection. Full world/mission generation remains open.
+- All 658 zones now retain their IACT conditions, instructions, five signed
+  arguments and text. IZAX/IZX2/IZX3 include the header in their lengths; IZX4
+  and IACT lengths count payload only. Zone 93 has 51 actions; zone 94 has 28.
+  This preserves original story data; parsing alone does not execute it.
+- Condition dispatcher `00407e90`, evidence
+  `ev_f2f5dc36723b1d4111353984be2cbf8fbef9591fcabe5c04a030fcff6fe2938a`, and
+  instruction dispatcher `004087f0`, evidence
+  `ev_8a4e784f0e957ddb01b272740145feca3d56393976de3c9d893289dcf08fd588`,
+  were decompiled. The old opcodes document is inaccurate: e.g. instruction 4
+  speaks as Luke, 5 speaks at NPC coordinates, 20 disables the current action.
+
+Browser verification through REA captured the original splash
+(`ev_f9d41d740da0d301c1409e40bff496a790056752aa2a3ea40cd72668d320da2f`).
+The controlled reload recorded no page errors or console warnings/errors;
+network observation was incomplete at the capture boundary and must not be
+interpreted as exhaustive network verification. Nine regression tests pass.

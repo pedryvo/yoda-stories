@@ -60,3 +60,25 @@ test('item use is suspended while paused', () => {
  g.state.equippedItem = { tileId: 505, count: 2 };
  g.useEquippedItem(); assert.equal(g.state.health,10); assert.equal(g.state.equippedItem.count,2);
 });
+test('zone scripts preserve original Dagobah dialogue and command arguments', () => {
+ const zone = dta.zones.find(z => z.id === 93);
+ assert.equal(zone.actions.length,51);
+ const intro = zone.actions[29];
+ assert.deepEqual(intro.conditions[0].args.slice(0,3),[6,13,858]);
+ assert.equal(intro.instructions.find(i => i.opcode === 4).text,
+ "Dagobah! Yoda must be around here somewhere. I better find him and see what's on his mind...");
+ assert.equal(dta.zones.find(z => z.id === 94).actions.length,28);
+});
+test('initialization displays the original splash before a world is started', async () => {
+ const g = game(); g.audio.playMusic = () => {};
+ await g.init(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
+ let splash = false; g.renderer.renderStartupImage = (_ctx, image) => { splash = image.length === 288*288; };
+ g.render({}); assert.equal(splash,true);
+ const before = [g.state.heroX,g.state.heroY];g.moveHero(1,0);
+ assert.deepEqual([g.state.heroX,g.state.heroY],before);
+});
+test('new worlds start in the Dagobah opening sector rather than a random catalog zone', () => {
+ const g = game(); g.state.isPaused = true;g.newWorld();
+ assert.equal(dta.zones[g.state.currentZoneId].id,93);
+ assert.equal(g.state.isPaused,false);
+});

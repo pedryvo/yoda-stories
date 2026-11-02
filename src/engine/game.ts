@@ -73,7 +73,7 @@ export class YodaGame {
     const storedLost = parseInt(localStorage.getItem('yoda_games_lost') || '1', 10);
 
     this.state = {
-      currentZoneId: 0,
+      currentZoneId: -1,
       planet: 2, // Dagobah
       planetName: 'Dagobah',
       heroX: 4,
@@ -146,14 +146,14 @@ export class YodaGame {
     this.state.equippedWeapon = lightsaber;
     this.state.equippedItem = locatorItem;
 
-    // Find Dagobah starting zone (Dagobah is Planet 5, Zone 94 DagobahNorthWest)
-    let startZoneIdx = this.dta.zones.findIndex(
-      (z) => z.id === 94 || (z.planet === 5 && z.tileIDs.length > 0)
-    );
-    if (startZoneIdx === -1) startZoneIdx = 0;
+    // The original loads STUP before a world is requested from the File menu.
+    this.currentZone = null;
+    this.state.currentZoneId = -1;
+    this.notifyState();
+  }
 
-    this.loadZone(startZoneIdx);
-    this.audio.playMusic('opening.wav', false);
+  public get showingStartup(): boolean {
+    return this.dta !== null && this.currentZone === null;
   }
 
   public loadZone(zoneId: number, preservePosition = false): void {
@@ -267,7 +267,7 @@ export class YodaGame {
   }
 
   public attack(): void {
-    if (this.state.isPaused || this.isAttacking) return;
+    if (this.state.isPaused || !this.currentZone || this.isAttacking) return;
     this.isAttacking = true;
     this.attackTimer = 12; // 12 frames duration
 
@@ -307,7 +307,7 @@ export class YodaGame {
   }
 
   public useEquippedItem(): void {
-    if (this.state.isPaused || !this.state.equippedItem) return;
+    if (this.state.isPaused || !this.currentZone || !this.state.equippedItem) return;
     const item = this.state.equippedItem;
 
     if (item.tileId === 505) {
@@ -350,22 +350,27 @@ export class YodaGame {
   }
 
   public newWorld(size: 'small' | 'medium' | 'large' = 'medium'): void {
+    if (!this.dta) return;
+    // Native setup (004286f0) starts at world cell (4,5), the southwest
+    // Dagobah sector (93), with Luke at pixel (320,320).
+    const startZone = this.dta.zones.findIndex(z => z.id === 93);
+    if (startZone < 0) throw new Error('Missing Dagobah starting sector (93)');
     this.state.health = 100;
     this.state.force = 100;
     this.state.score = 0;
     this.state.worldControl = size;
+    this.state.isPaused = false;
+    this.state.direction = 2;
+    this.isAttacking = false;
+    this.walkFrame = 0;
     this.audio.playSound('opening.wav');
-
-    if (this.dta) {
-      const randZone = Math.floor(Math.random() * this.dta.zones.length);
-      this.loadZone(randZone);
-    }
-    if (this.onMessageDialog) {
-      this.onMessageDialog(t().appName, t().lore.dagobahArrival, 780);
-    }
+    this.state.heroX = 10;
+    this.state.heroY = 10;
+    this.loadZone(startZone, true);
   }
 
   public saveWorld(): void {
+    if (!this.currentZone) return;
     const serialized = JSON.stringify({
       state: this.state,
       date: new Date().toISOString(),
@@ -412,6 +417,10 @@ export class YodaGame {
   }
 
   public render(ctx: CanvasRenderingContext2D): void {
+    if (this.dta && this.showingStartup) {
+      this.renderer.renderStartupImage(ctx, this.dta.startupImage);
+      return;
+    }
     if (!this.dta || !this.currentZone) {
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
