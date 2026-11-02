@@ -62,14 +62,14 @@ export class TileRenderer {
       return zone.tileIDs[idx] ?? -1;
     };
 
-    // Layer 2: Floor / Ground (drawn first as base terrain)
+    // Layer 0: Floor / Ground (drawn first as base terrain)
     for (let vy = 0; vy < VIEW_TILES_Y; vy++) {
       for (let vx = 0; vx < VIEW_TILES_X; vx++) {
         const zx = cameraTileX + vx;
         const zy = cameraTileY + vy;
-        const tileId = getZoneTileId(zx, zy, 2);
-        // Only draw valid tiles (tileId > 0, 0 is null/empty placeholder in DTA)
-        if (tileId > 0 && tileId < tiles.length) {
+        const tileId = getZoneTileId(zx, zy, 0);
+        // -1 is empty; tile zero is a valid black tile.
+        if (tileId >= 0 && tileId < tiles.length) {
           const tile = tiles[tileId];
           targetCtx.drawImage(this.getTileCanvas(tile), vx * TILE_SIZE, vy * TILE_SIZE);
         }
@@ -82,7 +82,7 @@ export class TileRenderer {
         const zx = cameraTileX + vx;
         const zy = cameraTileY + vy;
         const tileId = getZoneTileId(zx, zy, 1);
-        if (tileId > 0 && tileId < tiles.length) {
+        if (tileId >= 0 && tileId < tiles.length) {
           const tile = tiles[tileId];
           targetCtx.drawImage(this.getTileCanvas(tile), vx * TILE_SIZE, vy * TILE_SIZE);
         }
@@ -108,13 +108,13 @@ export class TileRenderer {
       }
     }
 
-    // Layer 0: Overhead Roofs / Tree Canopies (drawn on top of Hero)
+    // Layer 2: Overhead Roofs / Tree Canopies (drawn on top of Hero)
     for (let vy = 0; vy < VIEW_TILES_Y; vy++) {
       for (let vx = 0; vx < VIEW_TILES_X; vx++) {
         const zx = cameraTileX + vx;
         const zy = cameraTileY + vy;
-        const tileId = getZoneTileId(zx, zy, 0);
-        if (tileId > 0 && tileId < tiles.length) {
+        const tileId = getZoneTileId(zx, zy, 2);
+        if (tileId >= 0 && tileId < tiles.length) {
           const tile = tiles[tileId];
           targetCtx.drawImage(this.getTileCanvas(tile), vx * TILE_SIZE, vy * TILE_SIZE);
         }

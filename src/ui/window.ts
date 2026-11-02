@@ -154,7 +154,7 @@ export class GameWindow {
 
       <!-- Viewport Screen Area -->
       <div class="viewport-screen">
-        <div class="canvas-wrapper scanlines">
+        <div class="canvas-wrapper">
           <!-- Canvas injected here -->
         </div>
 

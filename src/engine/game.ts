@@ -156,7 +156,7 @@ export class YodaGame {
     this.audio.playMusic('opening.wav', false);
   }
 
-  public loadZone(zoneId: number): void {
+  public loadZone(zoneId: number, preservePosition = false): void {
     if (!this.dta || zoneId < 0 || zoneId >= this.dta.zones.length) return;
     this.currentZone = this.dta.zones[zoneId];
     this.state.currentZoneId = zoneId;
@@ -170,30 +170,22 @@ export class YodaGame {
     };
     this.state.planetName = planetMap[this.currentZone.planet] || 'Dagobah';
 
-    // Spawn Luke near center of zone at the nearest walkable clearing
-    const centerX = Math.floor(this.currentZone.width / 2);
-    const centerY = Math.floor(this.currentZone.height / 2);
-    let bestX = centerX;
-    let bestY = centerY;
-    let bestDist = Infinity;
-
-    for (let y = 0; y < this.currentZone.height; y++) {
-      for (let x = 0; x < this.currentZone.width; x++) {
-        const t1 = this.currentZone.tileIDs[(y * this.currentZone.width + x) * 3 + 1];
-        const t2 = this.currentZone.tileIDs[(y * this.currentZone.width + x) * 3 + 2];
-        // Walkable: no solid obstacle on Layer 1 (t1 <= 0) and has ground floor (t2 > 0)
-        if (t1 <= 0 && t2 > 0) {
+    if (!preservePosition) {
+      const centerX = Math.floor(this.currentZone.width / 2);
+      const centerY = Math.floor(this.currentZone.height / 2);
+      let bestDist = Infinity;
+      for (let y = 0; y < this.currentZone.height; y++) {
+        for (let x = 0; x < this.currentZone.width; x++) {
+          if (!this.isWalkable(x, y)) continue;
           const dist = Math.hypot(x - centerX, y - centerY);
           if (dist < bestDist) {
             bestDist = dist;
-            bestX = x;
-            bestY = y;
+            this.state.heroX = x;
+            this.state.heroY = y;
           }
         }
       }
     }
-    this.state.heroX = bestX;
-    this.state.heroY = bestY;
 
     this.notifyState();
   }
@@ -221,22 +213,7 @@ export class YodaGame {
       return;
     }
 
-    // Check collision against solid obstacle tiles (on Object layer 1 or Canopy layer 0)
-    const tile1Id = this.currentZone.tileIDs[(targetY * this.currentZone.width + targetX) * 3 + 1];
-    const tile0Id = this.currentZone.tileIDs[(targetY * this.currentZone.width + targetX) * 3 + 0];
-
-    const isSolid = (tid: number): boolean => {
-      if (tid > 0 && this.dta) {
-        const tile = this.dta.tiles[tid];
-        // 0x01 = Solid / Barrier, 0x04 = Object obstacle, 0x10 = Wall/Roof
-        if (tile && (tile.attributes & 0x01 || tile.attributes & 0x04 || tile.attributes & 0x10)) {
-          return true;
-        }
-      }
-      return false;
-    };
-
-    if (isSolid(tile1Id) || isSolid(tile0Id)) {
+    if (!this.isWalkable(targetX, targetY)) {
       this.audio.playSound('nogo.wav');
       return;
     }
@@ -248,6 +225,18 @@ export class YodaGame {
     // Check interactive hotspots in new position
     this.checkHotspots(targetX, targetY);
     this.notifyState();
+  }
+
+  private isWalkable(x: number, y: number): boolean {
+    if (!this.currentZone || !this.dta) return false;
+    const { width, height, tileIDs } = this.currentZone;
+    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    const offset = (y * width + x) * 3;
+    const floor = this.dta.tiles[tileIDs[offset]];
+    const object = this.dta.tiles[tileIDs[offset + 1]];
+    // Ground is bit 1; bit 2 identifies objects. Overhead tiles do not block Luke.
+    return !!floor && (floor.attributes & 0x02) !== 0 &&
+      (!object || (object.attributes & 0x04) === 0);
   }
 
   private handleZoneEdgeTransition(dx: number, dy: number): void {
@@ -318,7 +307,7 @@ export class YodaGame {
   }
 
   public useEquippedItem(): void {
-    if (!this.state.equippedItem) return;
+    if (this.state.isPaused || !this.state.equippedItem) return;
     const item = this.state.equippedItem;
 
     if (item.tileId === 505) {
@@ -398,7 +387,7 @@ export class YodaGame {
       const parsed = JSON.parse(raw);
       if (parsed.state) {
         this.state = parsed.state;
-        this.loadZone(this.state.currentZoneId);
+        this.loadZone(this.state.currentZoneId, true);
         this.audio.playSound('cantina.wav');
         if (this.onMessageDialog) {
           this.onMessageDialog(t().menus.loadWorld, 'Game world successfully loaded!');

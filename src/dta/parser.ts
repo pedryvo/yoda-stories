@@ -166,11 +166,11 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
     if (reader.offset + 2 <= nextZoneOffset) {
       hotspotCount = reader.readUint16();
       for (let h = 0; h < hotspotCount; h++) {
-        if (reader.offset + 18 > nextZoneOffset) break;
+        if (reader.offset + 12 > nextZoneOffset) break;
         const type = reader.readUint32();
-        const x = reader.readUint32();
-        const y = reader.readUint32();
-        const enabled = reader.readUint32() !== 0;
+        const x = reader.readUint16();
+        const y = reader.readUint16();
+        const enabled = reader.readUint16() !== 0;
         const arg = reader.readInt16();
         hotspots.push({ type, x, y, enabled, arg });
       }
