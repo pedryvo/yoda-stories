@@ -62,12 +62,12 @@ export class TileRenderer {
       return zone.tileIDs[idx] ?? -1;
     };
 
-    // Layer 0: Background
+    // Layer 2: Floor / Ground (drawn first as base terrain)
     for (let vy = 0; vy < VIEW_TILES_Y; vy++) {
       for (let vx = 0; vx < VIEW_TILES_X; vx++) {
         const zx = cameraTileX + vx;
         const zy = cameraTileY + vy;
-        const tileId = getZoneTileId(zx, zy, 0);
+        const tileId = getZoneTileId(zx, zy, 2);
         if (tileId >= 0 && tileId < tiles.length) {
           const tile = tiles[tileId];
           targetCtx.drawImage(this.getTileCanvas(tile), vx * TILE_SIZE, vy * TILE_SIZE);
@@ -107,12 +107,12 @@ export class TileRenderer {
       }
     }
 
-    // Layer 2: Overhead / Roofs
+    // Layer 0: Overhead Roofs / Tree Canopies (drawn on top of Hero)
     for (let vy = 0; vy < VIEW_TILES_Y; vy++) {
       for (let vx = 0; vx < VIEW_TILES_X; vx++) {
         const zx = cameraTileX + vx;
         const zy = cameraTileY + vy;
-        const tileId = getZoneTileId(zx, zy, 2);
+        const tileId = getZoneTileId(zx, zy, 0);
         if (tileId >= 0 && tileId < tiles.length) {
           const tile = tiles[tileId];
           targetCtx.drawImage(this.getTileCanvas(tile), vx * TILE_SIZE, vy * TILE_SIZE);

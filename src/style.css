@@ -229,9 +229,10 @@ html, body {
 .win95-client-area {
   display: flex;
   flex-direction: row;
-  background: #808080;
+  align-items: flex-start;
+  background: var(--win-gray);
   padding: 4px;
-  gap: 4px;
+  gap: 6px;
 }
 
 /* Canvas Area */
@@ -241,10 +242,10 @@ html, body {
   border-left: 2px solid var(--win-darkest);
   border-right: 2px solid var(--win-white);
   border-bottom: 2px solid var(--win-white);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
   overflow: hidden;
+  line-height: 0;
 }
 
 .game-canvas {
@@ -650,15 +651,16 @@ html, body {
   }
 
   .canvas-wrapper {
-    width: 100%;
-    max-width: 360px;
+    width: fit-content;
+    max-width: 100%;
+    height: fit-content;
+    margin: 0 auto;
   }
 
   .game-canvas {
-    width: 100% !important;
-    max-width: 320px;
-    height: auto !important;
-    aspect-ratio: 1;
+    width: min(90vw, 320px) !important;
+    height: min(90vw, 320px) !important;
+    aspect-ratio: 1 / 1;
   }
 
   .win95-sidebar {

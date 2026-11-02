@@ -146,9 +146,9 @@ export class YodaGame {
     this.state.equippedWeapon = lightsaber;
     this.state.equippedItem = locatorItem;
 
-    // Find Dagobah starting zone (Swamp planet = 2)
+    // Find Dagobah starting zone (Dagobah is Planet 5, Zone 94 DagobahNorthWest)
     let startZoneIdx = this.dta.zones.findIndex(
-      (z) => z.planet === 2 && z.tileIDs.length > 0
+      (z) => z.id === 94 || (z.planet === 5 && z.tileIDs.length > 0)
     );
     if (startZoneIdx === -1) startZoneIdx = 0;
 
@@ -161,8 +161,14 @@ export class YodaGame {
     this.currentZone = this.dta.zones[zoneId];
     this.state.currentZoneId = zoneId;
     this.state.planet = this.currentZone.planet;
-    this.state.planetName =
-      this.currentZone.planet === 0 ? 'Tatooine' : this.currentZone.planet === 1 ? 'Hoth' : 'Dagobah';
+    const planetMap: Record<number, string> = {
+      0: 'Space',
+      1: 'Tatooine',
+      2: 'Hoth',
+      3: 'Endor',
+      5: 'Dagobah',
+    };
+    this.state.planetName = planetMap[this.currentZone.planet] || 'Dagobah';
 
     // Spawn Luke near center of zone
     this.state.heroX = Math.floor(this.currentZone.width / 2);
@@ -194,16 +200,24 @@ export class YodaGame {
       return;
     }
 
-    // Check collision against solid layer 1 tiles
+    // Check collision against solid obstacle tiles (on Object layer 1 or Canopy layer 0)
     const tile1Id = this.currentZone.tileIDs[(targetY * this.currentZone.width + targetX) * 3 + 1];
+    const tile0Id = this.currentZone.tileIDs[(targetY * this.currentZone.width + targetX) * 3 + 0];
 
-    if (tile1Id > 0 && this.dta) {
-      const tile = this.dta.tiles[tile1Id];
-      if (tile && (tile.attributes & 0x01 || tile.attributes & 0x02)) {
-        // Obstacle / Solid wall
-        this.audio.playSound('nogo.wav');
-        return;
+    const isSolid = (tid: number): boolean => {
+      if (tid > 0 && this.dta) {
+        const tile = this.dta.tiles[tid];
+        // 0x01 = Solid / Barrier, 0x04 = Object obstacle, 0x10 = Wall/Roof
+        if (tile && (tile.attributes & 0x01 || tile.attributes & 0x04 || tile.attributes & 0x10)) {
+          return true;
+        }
       }
+      return false;
+    };
+
+    if (isSolid(tile1Id) || isSolid(tile0Id)) {
+      this.audio.playSound('nogo.wav');
+      return;
     }
 
     this.state.heroX = targetX;
