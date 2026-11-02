@@ -200,9 +200,7 @@ export class YodaGame {
       ) {
         const yodaSector = this.currentWorld.dagobah.find(s => s && s.type === 16);
         if (yodaSector && !yodaSector.solved) {
-          if (this.onMessageDialog) {
-            this.onMessageDialog('Luke Skywalker', 'Wait, I hear Yoda calling...', 799);
-          }
+          this.showNativeDialog('Luke Skywalker', 'Wait, I hear Yoda calling...', 799);
           this.notifyState();
           return;
         }
@@ -428,7 +426,31 @@ export class YodaGame {
     return false;
   }
 
-  private offerOrAddQuestItem(tileId: number, x: number, y: number, onCancel?: () => void): void {
+  private showNativeDialog(
+    title: string,
+    text: string,
+    avatarTileId?: number,
+    onClose?: () => void
+  ): void {
+    if (!this.onMessageDialog) {
+      onClose?.();
+      return;
+    }
+    this.storyDialogue = true;
+    this.onMessageDialog(title, text, avatarTileId, () => {
+      this.storyDialogue = false;
+      onClose?.();
+      this.notifyState();
+    });
+  }
+
+  private offerOrAddQuestItem(
+    tileId: number,
+    x: number,
+    y: number,
+    onCancel?: () => void,
+    onAccept?: () => void
+  ): void {
     const tile = this.dta?.tiles[tileId];
     if (!tile) return;
     const item: InventoryItem = {
@@ -439,18 +461,24 @@ export class YodaGame {
       count: 1,
     };
     if (this.onPickupOffer) {
+      this.storyDialogue = true;
       this.onPickupOffer(
         item,
         () => {
+          this.storyDialogue = false;
           this.addStoryItem(tileId);
+          onAccept?.();
+          this.notifyState();
         },
         () => {
+          this.storyDialogue = false;
           onCancel?.();
           this.notifyState();
         }
       );
     } else {
       this.addStoryItem(tileId);
+      onAccept?.();
     }
   }
 
@@ -466,29 +494,32 @@ export class YodaGame {
       const goalPuzzle = this.dta.puzzles.find(p => p.id === this.currentWorld!.story.goalId);
       if (yodaSector && goalPuzzle) {
         if (!yodaSector.solved) {
-          yodaSector.solved = true;
           const text = goalPuzzle.texts[3] || goalPuzzle.texts[0] || 'May the Force be with you.';
           const giftId =
             yodaSector.findItem >= 0 ? yodaSector.findItem : this.currentWorld.story.initialItem;
           const grantGift = () => {
             if (giftId >= 0) {
-              this.offerOrAddQuestItem(giftId, targetX, targetY, () => {
-                yodaSector.solved = false;
-              });
+              this.offerOrAddQuestItem(
+                giftId,
+                targetX,
+                targetY,
+                () => {
+                  yodaSector.solved = false;
+                },
+                () => {
+                  yodaSector.solved = true;
+                }
+              );
+            } else {
+              yodaSector.solved = true;
             }
           };
-          if (this.onMessageDialog) {
-            this.onMessageDialog('Yoda', text, tileId, grantGift);
-          } else {
-            grantGift();
-          }
+          this.showNativeDialog('Yoda', text, tileId, grantGift);
         } else {
           const text = this.hasLeftDagobah
             ? 'You must complete your mission, Luke!'
             : goalPuzzle.texts[2] || goalPuzzle.texts[3] || 'May the Force be with you.';
-          if (this.onMessageDialog) {
-            this.onMessageDialog('Yoda', text, tileId);
-          }
+          this.showNativeDialog('Yoda', text, tileId);
         }
         return true;
       }
@@ -504,13 +535,13 @@ export class YodaGame {
         if (!sector.solved) {
           const nextPuzzle = this.dta.puzzles.find(p => p.id === chain[sector.puzzleIndex + 1]);
           const text = [puzzle.texts[0], nextPuzzle?.texts[2]].filter(Boolean).join(' ');
-          if (this.onMessageDialog && text) {
-            this.onMessageDialog(npcName, text, tileId);
+          if (text) {
+            this.showNativeDialog(npcName, text, tileId);
           }
         } else {
           const text = puzzle.texts[1] || puzzle.texts[0] || '';
-          if (this.onMessageDialog && text) {
-            this.onMessageDialog(npcName, text, tileId);
+          if (text) {
+            this.showNativeDialog(npcName, text, tileId);
           }
         }
         return true;
