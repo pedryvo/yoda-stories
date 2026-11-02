@@ -60,6 +60,7 @@ export class YodaGame {
   public currentWorld: GeneratedWorld | null = null;
   public heroVisible: boolean = true;
   public hasLeftDagobah: boolean = false;
+  private pendingPostEnter: boolean = false;
   private doorReturnStack: Array<{ zoneId: number; x: number; y: number }> = [];
 
   // Callback hooks for HTML5 UI
@@ -191,6 +192,21 @@ export class YodaGame {
     }
 
     if (!this.isWalkable(targetX, targetY)) {
+      const bumpTile = this.currentZone.tileIDs[(targetY * this.currentZone.width + targetX) * 3 + 1];
+      if (
+        this.currentZone.id === 93 &&
+        [952, 953, 954, 955].includes(bumpTile) &&
+        this.currentWorld
+      ) {
+        const yodaSector = this.currentWorld.dagobah.find(s => s && s.type === 16);
+        if (yodaSector && !yodaSector.solved) {
+          if (this.onMessageDialog) {
+            this.onMessageDialog('Luke Skywalker', 'Wait, I hear Yoda calling...', 799);
+          }
+          this.notifyState();
+          return;
+        }
+      }
       this.runScripts('bump', targetX, targetY);
       if (!this.storyDialogue && this.handleNpcBump(targetX, targetY)) {
         this.notifyState();
@@ -311,7 +327,10 @@ export class YodaGame {
           const sector = this.getCurrentSector();
           if (sector) sector.visited = true;
           this.runScripts('enter');
-          if (!this.storyDialogue) this.runScripts('tick');
+          if (!this.storyDialogue) {
+            this.pendingPostEnter = false;
+            this.runScripts('tick');
+          }
           return true;
         }
       }
@@ -323,14 +342,15 @@ export class YodaGame {
           this.loadZone(targetIdx, true);
           const vt = this.currentZone.hotspots.find(spot => spot.type === 14 && spot.enabled) ??
             this.currentZone.hotspots.find(spot => spot.type === 14);
-          if (vt) {
-            this.state.heroX = vt.x;
-            this.state.heroY = vt.y;
-          }
+          this.state.heroX = vt ? vt.x : 6;
+          this.state.heroY = vt ? vt.y + 2 : 12;
           const runtime = this.scripts.get(targetIdx);
           if (runtime) runtime.counter = 3;
           this.runScripts('enter');
-          if (!this.storyDialogue) this.runScripts('tick');
+          if (!this.storyDialogue) {
+            this.pendingPostEnter = false;
+            this.runScripts('tick');
+          }
           return true;
         }
       }
@@ -516,6 +536,7 @@ export class YodaGame {
   private runScripts(event: ScriptEvent, targetX = this.state.heroX, targetY = this.state.heroY): void {
     const zone = this.currentZone;
     if (!zone || !this.dta || this.storyDialogue) return;
+    if (event === 'enter') this.pendingPostEnter = true;
     let runtime = this.scripts.get(this.state.currentZoneId);
     if (!runtime) {
       runtime = new ZoneScripts();
@@ -897,7 +918,8 @@ export class YodaGame {
     if (this.state.isPaused || this.storyDialogue) return;
 
     this.tickCount++;
-    if (this.tickCount === 1 || this.tickCount % 8 === 0) {
+    if (this.pendingPostEnter) {
+      this.pendingPostEnter = false;
       this.runScripts('tick');
     }
     if (this.tickCount % 8 === 0 && !this.storyDialogue) {

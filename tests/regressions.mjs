@@ -262,6 +262,16 @@ test('Dagobah opening tick runs the X-Wing arrival animation and steps Luke out 
  assert.equal(g.heroVisible, true);
  const z93 = g.worldZones.get(dta.zones.findIndex(z => z.id === 93));
  assert.equal(z93.tileIDs[(11 * 18 + 6) * 3 + 1], 953);
+
+ // Stepping up to (6, 12) near the X-Wing must NOT re-trigger the landing animation on subsequent updates
+ g.moveHero(0, -1);
+ assert.equal(g.state.heroX, 6);
+ assert.equal(g.state.heroY, 12);
+ for (let i = 0; i < 16; i++) g.update();
+ await g.waitForScene();
+ assert.equal(g.state.heroX, 6);
+ assert.equal(g.state.heroY, 12);
+ assert.equal(g.heroVisible, true);
 });
 
 test('bumping Yoda delivers mission briefing and grants initial quest item', () => {
