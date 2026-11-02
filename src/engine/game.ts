@@ -3,6 +3,7 @@ import { parseDta } from '../dta/parser';
 import { AudioManager } from '../audio/audio-manager';
 import { TileRenderer, CANVAS_WIDTH, CANVAS_HEIGHT } from '../render/renderer';
 import { t } from '../i18n';
+import { ZoneScripts, ScriptEvent, ScriptHost } from './scripts';
 
 export type Direction = 0 | 1 | 2 | 3; // 0: Up (North), 1: Right (East), 2: Down (South), 3: Left (West)
 
@@ -50,6 +51,10 @@ export class YodaGame {
   private attackTimer: number = 0;
   private walkFrame: number = 0;
   private tickCount: number = 0;
+  private worldZones = new Map<number, Zone>();
+  private scripts = new Map<number, ZoneScripts>();
+  private storyDialogue = false;
+  private startingInventory: InventoryItem[] = [];
 
   // Luke Skywalker Tile Frames (extracted from Character 0 in Yodesk.dta)
   // [Down, Up, Right, Left] x [Idle, Walk1, Walk2]
@@ -62,7 +67,8 @@ export class YodaGame {
 
   // Callback hooks for HTML5 UI
   public onStateUpdate?: (state: GameState) => void;
-  public onMessageDialog?: (title: string, text: string, avatarTileId?: number) => void;
+  public onMessageDialog?: (title: string, text: string, avatarTileId?: number, onClose?: () => void) => void;
+  public onPickupOffer?: (item: InventoryItem, accept: () => void, cancel: () => void) => void;
 
   constructor() {
     this.audio = new AudioManager();
@@ -145,6 +151,7 @@ export class YodaGame {
     this.state.inventory = [lightsaber, blaster, locatorItem, medkitItem];
     this.state.equippedWeapon = lightsaber;
     this.state.equippedItem = locatorItem;
+    this.startingInventory = structuredClone(this.state.inventory);
 
     // The original loads STUP before a world is requested from the File menu.
     this.currentZone = null;
@@ -158,7 +165,10 @@ export class YodaGame {
 
   public loadZone(zoneId: number, preservePosition = false): void {
     if (!this.dta || zoneId < 0 || zoneId >= this.dta.zones.length) return;
-    this.currentZone = this.dta.zones[zoneId];
+    if (!this.worldZones.has(zoneId)) {
+      this.worldZones.set(zoneId, structuredClone(this.dta.zones[zoneId]));
+    }
+    this.currentZone = this.worldZones.get(zoneId)!;
     this.state.currentZoneId = zoneId;
     this.state.planet = this.currentZone.planet;
     const planetMap: Record<number, string> = {
@@ -187,11 +197,12 @@ export class YodaGame {
       }
     }
 
+    if (!preservePosition) this.runScripts('enter');
     this.notifyState();
   }
 
   public moveHero(dx: number, dy: number): void {
-    if (this.state.isPaused || !this.currentZone) return;
+    if (this.state.isPaused || this.storyDialogue || !this.currentZone) return;
 
     if (dy < 0) this.state.direction = 0; // Up
     else if (dx > 0) this.state.direction = 1; // Right
@@ -214,6 +225,7 @@ export class YodaGame {
     }
 
     if (!this.isWalkable(targetX, targetY)) {
+      this.runScripts('bump', targetX, targetY);
       this.audio.playSound('nogo.wav');
       return;
     }
@@ -223,7 +235,7 @@ export class YodaGame {
     this.walkFrame = (this.walkFrame + 1) % 3;
 
     // Check interactive hotspots in new position
-    this.checkHotspots(targetX, targetY);
+    this.runScripts('walk', targetX, targetY);
     this.notifyState();
   }
 
@@ -234,40 +246,104 @@ export class YodaGame {
     const offset = (y * width + x) * 3;
     const floor = this.dta.tiles[tileIDs[offset]];
     const object = this.dta.tiles[tileIDs[offset + 1]];
-    // Ground is bit 1; bit 2 identifies objects. Overhead tiles do not block Luke.
+    // Ground is bit 1; foreground sprites and objects block. Roofs do not.
     return !!floor && (floor.attributes & 0x02) !== 0 &&
-      (!object || (object.attributes & 0x04) === 0);
+      (!object || (object.attributes & 0x05) === 0);
   }
 
   private handleZoneEdgeTransition(dx: number, dy: number): void {
-    if (!this.dta) return;
-    // Walk to next procedural zone
-    const nextZoneId = (this.state.currentZoneId + 1) % this.dta.zones.length;
+    if (!this.dta || !this.currentZone) return;
+    // Fixed Dagobah cells recovered from 004286f0. Other planets require
+    // the procedural world graph; catalog order does not describe neighbors.
+    const cells = [{ id:94,x:4,y:4 },{ id:95,x:5,y:4 },{ id:93,x:4,y:5 },{ id:96,x:5,y:5 }];
+    const cell = cells.find(c => c.id === this.currentZone!.id);
+    const neighbor = cell && cells.find(c => c.x === cell.x+dx && c.y === cell.y+dy);
+    const index = neighbor ? this.dta.zones.findIndex(z => z.id === neighbor.id) : -1;
+    if (index < 0) { this.audio.playSound('nogo.wav'); return; }
+    const next = this.dta.zones[index];
+    const x = dx > 0 ? 0 : dx < 0 ? next.width-1 : this.state.heroX;
+    const y = dy > 0 ? 0 : dy < 0 ? next.height-1 : this.state.heroY;
+    const old = this.state.currentZoneId;
+    this.loadZone(index,true);
+    if (!this.isWalkable(x,y)) { this.loadZone(old,true); return; }
+    this.state.heroX = x;
+    this.state.heroY = y;
     this.audio.playSound('truckin.wav');
-    this.loadZone(nextZoneId);
-
-    // Position hero at opposite edge
-    if (dx > 0) this.state.heroX = 0;
-    else if (dx < 0) this.state.heroX = this.currentZone!.width - 1;
-    if (dy > 0) this.state.heroY = 0;
-    else if (dy < 0) this.state.heroY = this.currentZone!.height - 1;
+    this.runScripts('enter');
+    this.notifyState();
   }
 
-  private checkHotspots(x: number, y: number): void {
-    if (!this.currentZone) return;
-    for (const h of this.currentZone.hotspots) {
-      if (h.enabled && h.x === x && h.y === y) {
-        this.audio.playSound('locator.wav');
-        if (this.onMessageDialog) {
-          this.onMessageDialog('Dagobah', t().lore.yodaGreeting, 780);
-        }
-        break;
-      }
+  private addStoryItem(tileId: number): void {
+    const tile = this.dta?.tiles[tileId];
+    if (!tile) return;
+    const existing = this.state.inventory.find(i => i.tileId === tileId);
+    if (existing) existing.count++;
+    else this.state.inventory.push({ id: tileId, tileId, name: tile.name || `Item ${tileId}`, type: 'quest', count: 1 });
+    this.notifyState();
+  }
+
+  private runScripts(event: ScriptEvent, targetX = this.state.heroX, targetY = this.state.heroY): void {
+    const zone = this.currentZone;
+    if (!zone || !this.dta || this.storyDialogue) return;
+    let runtime = this.scripts.get(this.state.currentZoneId);
+    if (!runtime) {
+      runtime = new ZoneScripts();
+      runtime.sectorCounter = zone.sectorCounter ?? -1;
+      this.scripts.set(this.state.currentZoneId, runtime);
     }
+    const queue: Array<(next: () => void) => void> = [];
+    const host: ScriptHost = {
+      x: this.state.heroX, y: this.state.heroY, targetX, targetY,
+      usedItem: this.state.equippedItem?.tileId ?? -1,
+      hasItem: id => this.state.inventory.some(i => i.tileId === id && i.count > 0),
+      speak: (text, x, y) => {
+        const tileId = x === undefined || y === undefined ? 799 : zone.tileIDs[(y*zone.width+x)*3+1];
+        queue.push(next => this.onMessageDialog ? this.onMessageDialog(x === undefined ? 'Luke Skywalker' : this.dta!.tiles[tileId]?.name || 'Yoda Stories',text,tileId,next) : next());
+      },
+      sound: id => {
+        const sound = this.dta!.sounds[id];
+        if (sound) this.audio.playSound(sound.replace(/^.*[\\/]/,''));
+      },
+      move: (x,y) => { this.state.heroX = host.x = x; this.state.heroY = host.y = y; },
+      addItem: id => this.addStoryItem(id),
+      removeItem: id => {
+        const item = this.state.inventory.find(i => i.tileId === id);
+        if (item && --item.count <= 0) {
+          this.state.inventory = this.state.inventory.filter(i => i !== item);
+          if (this.state.equippedItem === item) this.state.equippedItem = null;
+          if (this.state.equippedWeapon === item) this.state.equippedWeapon = null;
+        }
+      },
+      offerItem: (id,x,y) => {
+        const tile = this.dta!.tiles[id];
+        if (!tile) return;
+        queue.push(next => {
+          const item: InventoryItem = { id, tileId:id, name:tile.name || `Item ${id}`,type:'quest',count:1 };
+          const cancel = () => {
+            zone.tileIDs[(y*zone.width+x)*3+1] = id;
+            // The web confirmation can be dismissed; keep the pickup's
+            // originating action available rather than losing the quest item.
+            runtime.disabled = runtime.disabled.filter(index => !zone.actions[index].instructions.some(i =>
+              i.opcode === 27 && i.args[0] === id && i.args[1] === x && i.args[2] === y));
+            next();
+          };
+          if (this.onPickupOffer) this.onPickupOffer(item,() => { this.addStoryItem(id);next(); },cancel);
+          else cancel();
+        });
+      },
+    };
+    runtime.run(zone,event,host);
+    const next = () => {
+      const show = queue.shift();
+      this.storyDialogue = !!show;
+      if (show) show(next);
+      else this.notifyState();
+    };
+    next();
   }
 
   public attack(): void {
-    if (this.state.isPaused || !this.currentZone || this.isAttacking) return;
+    if (this.state.isPaused || this.storyDialogue || !this.currentZone || this.isAttacking) return;
     this.isAttacking = true;
     this.attackTimer = 12; // 12 frames duration
 
@@ -307,7 +383,9 @@ export class YodaGame {
   }
 
   public useEquippedItem(): void {
-    if (this.state.isPaused || !this.currentZone || !this.state.equippedItem) return;
+    if (this.state.isPaused || this.storyDialogue || !this.currentZone || !this.state.equippedItem) return;
+    this.runScripts('use');
+    if (this.storyDialogue) return;
     const item = this.state.equippedItem;
 
     if (item.tileId === 505) {
@@ -350,7 +428,7 @@ export class YodaGame {
   }
 
   public newWorld(size: 'small' | 'medium' | 'large' = 'medium'): void {
-    if (!this.dta) return;
+    if (!this.dta || this.storyDialogue) return;
     // Native setup (004286f0) starts at world cell (4,5), the southwest
     // Dagobah sector (93), with Luke at pixel (320,320).
     const startZone = this.dta.zones.findIndex(z => z.id === 93);
@@ -361,18 +439,27 @@ export class YodaGame {
     this.state.worldControl = size;
     this.state.isPaused = false;
     this.state.direction = 2;
+    this.state.inventory = structuredClone(this.startingInventory);
+    this.state.equippedWeapon = this.state.inventory.find(i => i.type === 'weapon') || null;
+    this.state.equippedItem = this.state.inventory.find(i => i.type === 'usable') || null;
+    this.worldZones.clear();
+    this.scripts.clear();
+    this.storyDialogue = false;
     this.isAttacking = false;
     this.walkFrame = 0;
     this.audio.playSound('opening.wav');
     this.state.heroX = 10;
     this.state.heroY = 10;
     this.loadZone(startZone, true);
+    this.runScripts('enter');
   }
 
   public saveWorld(): void {
-    if (!this.currentZone) return;
+    if (!this.currentZone || this.storyDialogue) return;
     const serialized = JSON.stringify({
       state: this.state,
+      zones: [...this.worldZones].map(([index, zone]) => ({ index, tileIDs: Array.from(zone.tileIDs), hotspots: zone.hotspots, monsters: zone.monsters })),
+      scripts: [...this.scripts].map(([index, script]) => ({ index, initialized: script.initialized, disabled: script.disabled, counter: script.counter, random: script.random, sectorCounter: script.sectorCounter })),
       date: new Date().toISOString(),
     });
     localStorage.setItem('yoda_save_game', serialized);
@@ -391,7 +478,23 @@ export class YodaGame {
     try {
       const parsed = JSON.parse(raw);
       if (parsed.state) {
+        this.worldZones.clear();
+        this.scripts.clear();
+        this.storyDialogue = false;
+        for (const saved of parsed.zones || []) {
+          const original = this.dta?.zones[saved.index];
+          if (original && saved.tileIDs.length === original.tileIDs.length) {
+            this.worldZones.set(saved.index, { ...structuredClone(original), tileIDs: Int16Array.from(saved.tileIDs), hotspots: saved.hotspots, monsters: saved.monsters });
+          }
+        }
+        for (const saved of parsed.scripts || []) {
+          const script = new ZoneScripts();
+          Object.assign(script, { initialized:saved.initialized, disabled:saved.disabled, counter:saved.counter, random:saved.random, sectorCounter:saved.sectorCounter });
+          this.scripts.set(saved.index,script);
+        }
         this.state = parsed.state;
+        this.state.equippedWeapon = this.state.inventory.find(i => i.id === this.state.equippedWeapon?.id) || null;
+        this.state.equippedItem = this.state.inventory.find(i => i.id === this.state.equippedItem?.id) || null;
         this.loadZone(this.state.currentZoneId, true);
         this.audio.playSound('cantina.wav');
         if (this.onMessageDialog) {
@@ -404,9 +507,10 @@ export class YodaGame {
   }
 
   public update(): void {
-    if (this.state.isPaused) return;
+    if (this.state.isPaused || this.storyDialogue) return;
 
     this.tickCount++;
+    if (this.tickCount % 8 === 0) this.runScripts('tick');
     if (this.isAttacking) {
       this.attackTimer--;
       if (this.attackTimer <= 0) {

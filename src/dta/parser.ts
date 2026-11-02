@@ -150,7 +150,7 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
     const width = reader.readUint16();
     const height = reader.readUint16();
     const zoneType = reader.readUint32();
-    reader.skip(2); // sectorCounter
+    const sectorCounter = reader.readInt16();
     reader.skip(2); // planetAgain
 
     // 3 layers of width * height stored interleaved by (y * width + x) * 3 + layer
@@ -217,6 +217,7 @@ export function parseDta(buffer: ArrayBuffer): DtaData {
       width,
       height,
       zoneType,
+      sectorCounter,
       tileIDs,
       hotspots,
       monsters: [],

@@ -33,3 +33,11 @@ Each Zone tile map consists of 3 layers:
 - **Layer 0 (Background / Floor)**: Dirt, sand, snow, metal flooring, water.
 - **Layer 1 (Objects / Entities)**: Obstacles, walls, trees, Luke, monsters, items, interactive furniture.
 - **Layer 2 (Overhead / Roof)**: Canopy, upper doorway arches, structures Luke walks under.
+
+## Verified zone subrecords (2026-11-02)
+
+Hotspots use 12-byte records: uint32 type, uint16 x, uint16 y, uint16 enabled,
+int16 argument. Empty tiles are -1; tile 0 is valid. IZAX, IZX2 and IZX3 sizes
+include their eight-byte header. IZX4's size counts only payload bytes. A uint16
+action count follows IZX4, followed by IACT records whose sizes count payload.
+See `opcodes.md` for the decoded command layout and current interpreter coverage.

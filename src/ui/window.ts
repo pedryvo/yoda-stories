@@ -15,6 +15,7 @@ export class GameWindow {
   private missionSeconds: number = 0;
   private missionTimerInterval: number | null = null;
   private toastTimeout: number | null = null;
+  private modalOnClose?: () => void;
 
   constructor(game: YodaGame, root: HTMLElement) {
     this.game = game;
@@ -624,8 +625,17 @@ export class GameWindow {
 
   private setupGameHooks(): void {
     this.game.onStateUpdate = (st) => this.renderState(st);
-    this.game.onMessageDialog = (title, text, avatarTileId) => {
-      this.showMessageModal(title, text, avatarTileId);
+    this.game.onMessageDialog = (title, text, avatarTileId, onClose) => {
+      this.showMessageModal(title, text, avatarTileId, onClose);
+    };
+    this.game.onPickupOffer = (item, accept, cancel) => {
+      const text = document.createElement('p');
+      text.textContent = item.name;
+      let accepted = false;
+      this.showModal(item.name,text,[
+        { text: t().dialogs.ok, primary: true, onClick: () => { accepted = true; } },
+        { text: t().dialogs.cancel, onClick: () => {} },
+      ],() => accepted ? accept() : cancel());
     };
   }
 
@@ -806,8 +816,10 @@ export class GameWindow {
   public showModal(
     title: string,
     bodyContent: HTMLElement | string,
-    buttons: Array<{ text: string; primary?: boolean; onClick: () => void }>
+    buttons: Array<{ text: string; primary?: boolean; onClick: () => void }>,
+    onClose?: () => void
   ): void {
+    this.modalOnClose = onClose;
     this.modalContainer.innerHTML = '';
     this.modalContainer.classList.remove('hidden');
 
@@ -817,9 +829,10 @@ export class GameWindow {
     const header = document.createElement('div');
     header.className = 'dialog-header';
     header.innerHTML = `
-      <span class="dialog-title">${title}</span>
+      <span class="dialog-title"></span>
       <button class="dialog-close-btn" id="dlg-close">×</button>
     `;
+    header.querySelector('.dialog-title')!.textContent = title;
     dlg.appendChild(header);
 
     header.querySelector('#dlg-close')?.addEventListener('click', () => {
@@ -855,9 +868,12 @@ export class GameWindow {
   public closeModal(): void {
     this.modalContainer.classList.add('hidden');
     this.modalContainer.innerHTML = '';
+    const onClose = this.modalOnClose;
+    this.modalOnClose = undefined;
+    onClose?.();
   }
 
-  public showMessageModal(title: string, text: string, avatarTileId?: number): void {
+  public showMessageModal(title: string, text: string, avatarTileId?: number, onClose?: () => void): void {
     const wrap = document.createElement('div');
 
     if (avatarTileId && this.game.dta) {
@@ -876,10 +892,7 @@ export class GameWindow {
       avatarRow.appendChild(cvs);
 
       const titleCol = document.createElement('div');
-      titleCol.innerHTML = `
-        <h4 style="font-family: var(--font-orbitron); color: var(--sw-yellow); font-weight: 700; font-size: 13px;">TRANSMISSÃO HOLOGRÁFICA</h4>
-        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--sw-cyan);">ORIGEM: DAGOBAH // MESTRE YODA</span>
-      `;
+      titleCol.textContent = title;
       avatarRow.appendChild(titleCol);
       wrap.appendChild(avatarRow);
     }
@@ -889,6 +902,7 @@ export class GameWindow {
     p.style.fontSize = '14px';
     p.style.color = '#e2e8f0';
     p.style.lineHeight = '1.6';
+    p.style.whiteSpace = 'pre-wrap';
     p.textContent = text;
     wrap.appendChild(p);
 
@@ -898,7 +912,7 @@ export class GameWindow {
         primary: true,
         onClick: () => {},
       },
-    ]);
+    ],onClose);
   }
 
   public showDifficultyModal(): void {

@@ -44,6 +44,7 @@ export interface Zone {
   width: number;
   height: number;
   zoneType: number;
+  sectorCounter?: number;
   tileIDs: Int16Array; // 3 * width * height: layer 0, layer 1, layer 2
   hotspots: Hotspot[];
   monsters: Monster[];

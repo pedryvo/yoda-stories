@@ -1,8 +1,8 @@
 # Fidelity audit (2026-11-02)
 
-REA MCP `binary_session` was rejected by the client: approval required, approval
-policy never. No REA analysis was obtained. The findings below are local file
-observations and code inspection, not decompilation or original runtime evidence.
+The initial pass was blocked by approval policy `never` and used local file
+inspection. After permissions changed, REA/Ghidra and browser observation worked.
+The follow-up sections below supersede the initial gaps where explicitly noted.
 
 ## Corrected
 
@@ -22,7 +22,7 @@ observations and code inspection, not decompilation or original runtime evidence
 - Loading a save no longer resets Luke to the zone's spawn point.
 - Pausing now also suspends equipped item use.
 
-## Remaining fidelity gaps
+## Gaps identified in the initial pass (see follow-up updates)
 
 These need executable analysis/runtime comparison before faithful implementation:
 
@@ -76,3 +76,42 @@ Browser verification through REA captured the original splash
 The controlled reload recorded no page errors or console warnings/errors;
 network observation was incomplete at the capture boundary and must not be
 interpreted as exhaustive network verification. Nine regression tests pass.
+
+## Initial script execution and sector connections
+
+The port now executes the supported subset documented in `docs/formats/opcodes.md`
+on entry, movement, bump, item use and ticks. First-entry world-cell checks,
+mission variables, placeholder substitution and cinematic timing remain partial.
+Unsupported actions are skipped before mutation and retained by action index.
+
+The landing dialogue trigger and the Artoo bump/pickup sequence execute from
+original zone 93 scripts, replacing the generic Yoda greeting for all hotspots.
+Dialogues block input until dismissed. Pickup uses confirmation rather than the
+original flashing icon. Script commands currently execute before the queued
+modals finish; this is a documented timing limitation. Tiles, hotspots, disabled
+actions and script counters are persisted in saves, isolated from the DTA catalog.
+
+The four known Dagobah world cells now connect spatially: 94 (4,4), 95 (5,4),
+93 (4,5), 96 (5,5), as shown by record addresses in `004286f0`. Crossings preserve
+the perpendicular coordinate and reject blocked destinations. Edges outside this
+known layout are blocked instead of selecting the next catalog zone. This does
+not reconstruct the generated mission graph or alternative sector 535.
+
+REA browser scenario `ev_66328cdf3477558d310c63788cde4fcb3457ebffd5ea59872587bce4afb4c9a8`
+started a game and bumped Artoo through the virtual pad. Screenshot
+`ev_9b92734c22ff69aca2b8ee2f3e36206ca4f1afd6868e80e1f892699333ffa47f`
+shows Luke's original opening line. A missing favicon request was found and
+removed. Fifteen regression tests cover these behaviors, including one-time
+landing dialogue, Artoo pickup/save/load, and reversible Dagobah crossings.
+
+Remaining major work: reproduce mission/world generation and Yoda placement,
+execute the remaining opcodes, parse characters/monsters, reproduce combat and
+inventory initialization, and verify the complete original gameplay under Wine.
+The port still does not reproduce a complete original story or win path.
+
+Final REA browser scenario `ev_f567b851e25e4f14fc656cee1ffce6e125506f0aded7c7c0146d11d48de59d6e`
+completed New Game, bump, both original dialogue lines, pickup acceptance and
+modal dismissal with no observed page errors or console warnings/errors. Event
+capture is marked incomplete by REA; all requested actions completed. A desktop
+attempt could not click the hidden mobile pad; the successful scenario used a
+600x900 viewport. Declining pickup is separately covered by a regression test.
