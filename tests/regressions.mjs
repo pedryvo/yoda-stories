@@ -210,3 +210,13 @@ test('native procedural generation produces complete mission worlds for all thre
    assert.ok(world.dagobah.filter(Boolean).length >= 4);
  }
 });
+test('hero facing direction corresponds to correct standing tile frames', () => {
+ const luke = dta.characters.find(c => c.id === 0);
+ // Direction: 0=Up (North: 1032), 1=Right (East: 1029), 2=Down (South: 799), 3=Left (West: 1026)
+ const facingMap = [0, 6, 1, 3];
+ assert.equal(luke.frames[facingMap[0]], 1032); // Up / North
+ assert.equal(luke.frames[facingMap[1]], 1029); // Right / East
+ assert.equal(luke.frames[facingMap[2]], 799);  // Down / South
+ assert.equal(luke.frames[facingMap[3]], 1026); // Left / West
+});
+

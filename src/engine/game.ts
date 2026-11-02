@@ -538,8 +538,9 @@ export class YodaGame {
 
     const luke = this.dta.characters.find(c => c.id === 0);
     const frameGroup = [0, 1, 0, 2][this.walkFrame];
-    // Character 0 frame offsets: 3=North/Up (1026), 6=East/Right (1029), 1=South/Down (799), 0=West/Left (1032)
-    const facing = [3, 6, 1, 0][this.state.direction];
+    // Direction: 0=Up (North: 1032), 1=Right (East: 1029), 2=Down (South: 799), 3=Left (West: 1026)
+    // Character 0 frame offsets: 0=North, 6=East, 1=South, 3=West
+    const facing = [0, 6, 1, 3][this.state.direction];
     const heroTileId = luke?.frames[frameGroup*8+facing] ?? 799;
     const weaponTileId = this.state.equippedWeapon?.tileId || 18;
 
