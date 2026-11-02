@@ -135,3 +135,22 @@ Initialization no longer grants free blaster, locator or medical supplies;
 new-world setup clears inventory, and original zone scripts grant equipment.
 Native 004047d0 destroys inventory and clears the equipped-weapon pointer;
 this does not prohibit subsequent scripted grants.
+
+## Native combat mechanics and procedural world generation
+
+Combat and world layout logic recovered from native routines are now implemented:
+- Combat:
+  - `0041b1c0`: Outgoing damage boost below 50 difficulty (`10 - Math.trunc(difficulty / 5)`).
+  - `0041ab30`: Incoming damage divisor scaling (`damage / Math.trunc(100 / difficulty)`).
+  - `0041b1c0`: Weapon character frames and attack cells (lightsaber sweeps the 3 adjacent tiles; blasters project 3 tiles forward).
+  - `00406e20`: Damage accumulation on monsters, slot preservation with `characterId = -1`, tile clearing, and loot placement on type-6 hotspots.
+- Procedural World Generation:
+  - `0042aee0` / `0042aed0`: MSVCRT rand/srand PRNG reproducing 32-bit state progression.
+  - `004201f0`, `00422210`, `00420c00`, `00404cb0`: Ring, island, blocker, and puzzle layout algorithms.
+  - `00421360`: Mission goal whitelist for Tatooine (1), Hoth (2), and Endor (3).
+  - Two puzzle chains (`chain1`, `chain2`), goal zone structure with goal item hotspots, and Dagobah setup (sectors 93, 94, 95, 96, and Yoda hut 535).
+- Async Script Execution:
+  - Script runtime suspends during dialogue and item confirmation modals so story mutations happen in correct cinematic order.
+  - Declining an item offer restores the tile and retains the action enabled for subsequent retry.
+
+Twenty-four regression tests pass across all subsystems.

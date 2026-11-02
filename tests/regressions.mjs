@@ -104,10 +104,10 @@ test('bumping Artoo runs his original dialogue instead of walking through him', 
  const messages=[];g.onMessageDialog=(title,text)=>messages.push({title,text});g.moveHero(-1,0);
  assert.equal(g.state.heroX,10);assert.equal(messages[0]?.text,'Artoo! What are you doing here?');
 });
-test('Artoo dialogue, pickup and saved script state survive loading without modifying the catalog', () => {
+test('Artoo dialogue, pickup and saved script state survive loading without modifying the catalog', async () => {
  const g=game();g.newWorld();g.state.heroX=10;g.state.heroY=10;
  const lines=[];g.onMessageDialog=(_title,text,_avatar,close)=>{lines.push(text);close?.();};
- g.onPickupOffer=(_item,accept)=>accept();g.moveHero(-1,0);
+ g.onPickupOffer=(_item,accept)=>accept();g.moveHero(-1,0);await g.waitForScene();
  assert.ok(lines.some(text=>text.includes("I'm here to HELP!")));
  assert.ok(g.state.inventory.some(i=>i.tileId===794));
  assert.equal(dta.zones.find(z=>z.id===93).tileIDs[(10*18+9)*3+1],794);
@@ -124,12 +124,12 @@ test('Dagobah sector edges follow spatial neighbors and allow returning', () => 
  assert.equal(g.dta.zones[g.state.currentZoneId].id,96);assert.equal(g.state.heroX,0);assert.equal(g.state.heroY,8);
  g.moveHero(-1,0);assert.equal(g.dta.zones[g.state.currentZoneId].id,93);assert.equal(g.state.heroX,17);
 });
-test('declining Artoo pickup leaves the encounter available to retry', () => {
+test('declining Artoo pickup leaves the encounter available to retry', async () => {
  const g=game();g.newWorld();g.state.heroX=10;g.state.heroY=10;
  g.onMessageDialog=(_title,_text,_avatar,close)=>close?.();
- g.onPickupOffer=(_item,_accept,cancel)=>cancel();g.moveHero(-1,0);
+ g.onPickupOffer=(_item,_accept,cancel)=>cancel();g.moveHero(-1,0);await g.waitForScene();
  assert.ok(!g.state.inventory.some(i=>i.tileId===794));
- g.onPickupOffer=(_item,accept)=>accept();g.moveHero(-1,0);
+ g.onPickupOffer=(_item,accept)=>accept();g.moveHero(-1,0);await g.waitForScene();
  assert.ok(g.state.inventory.some(i=>i.tileId===794));
 });
 test('original puzzle catalog preserves mission briefs and objective items', () => {
@@ -158,4 +158,55 @@ test('a new player starts without invented statistics or free equipment', async 
  const g=game();await g.init(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
  assert.deepEqual(g.state.inventory,[]);assert.equal(g.state.equippedWeapon,null);
  assert.equal(g.state.highScore,0);assert.equal(g.state.gamesWon,0);assert.equal(g.state.gamesLost,0);
+});
+test('story mutations wait until the current original dialogue has been dismissed', async () => {
+ const zone={width:1,height:1,tileIDs:new Int16Array([858,-1,-1]),hotspots:[],actions:[{conditions:[],instructions:[{opcode:4,args:[],text:'Wait for me.'},{opcode:0,args:[0,0,1,780,0]}]}]};
+ let dismiss;const runtime=new ZoneScripts();
+ const pending=runtime.run(zone,'bump',{speak:()=>new Promise(resolve=>{dismiss=resolve;})});
+ assert.equal(runtime.running,true);assert.equal(zone.tileIDs[1],-1);
+ dismiss();await pending;assert.equal(zone.tileIDs[1],780);assert.equal(runtime.running,false);
+});
+const { attackCells, outgoingDamage, incomingDamage, applyMonsterDamage, weaponCharacter } = await import('../src/engine/combat.ts');
+const { generateWorld } = await import('../src/engine/world.ts');
+test('combat difficulty scales outgoing and incoming damage using original formulas', () => {
+ assert.equal(outgoingDamage(5, 25), 25);
+ assert.equal(outgoingDamage(5, 50), 5);
+ assert.equal(incomingDamage(100, 50), 50);
+ assert.equal(incomingDamage(100, 25), 25);
+});
+test('lightsaber sweeps adjacent cells while blaster projects three cells forward', () => {
+ const saberCells = attackCells(1, 18);
+ assert.deepEqual(saberCells, [{ dx: 1, dy: -1 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 }]);
+ const blasterCells = attackCells(2, 512);
+ assert.deepEqual(blasterCells, [{ dx: 0, dy: 1 }, { dx: 0, dy: 2 }, { dx: 0, dy: 3 }]);
+});
+test('applying monster damage marks character as -1, clears tile and drops loot', () => {
+ const zone = {
+   width: 5, height: 5,
+   tileIDs: new Int16Array(5 * 5 * 3).fill(-1),
+   hotspots: [],
+   monsters: [{
+     id: 0, characterId: 2, x: 2, y: 2, loot: 422, dropsLoot: true,
+     waypoints: Array(8).fill(-1), damageTaken: 0, enabled: true
+   }]
+ };
+ zone.tileIDs[(2 * 5 + 2) * 3 + 1] = 999;
+ const hit = applyMonsterDamage(zone, dta.characters, 2, 2, 100);
+ assert.ok(hit);
+ assert.equal(hit.killed, true);
+ assert.equal(zone.monsters[0].characterId, -1);
+ assert.equal(zone.tileIDs[(2 * 5 + 2) * 3 + 1], 421);
+ assert.ok(zone.hotspots.some(h => h.type === 6 && h.arg === 421));
+});
+test('native procedural generation produces complete mission worlds for all three planets', () => {
+ for (const planet of [1, 2, 3]) {
+   const world = generateWorld(dta, { seed: 42, planet, size: 'small', completedCount: 0 });
+   assert.equal(world.planet, planet);
+   assert.ok(world.story.goalId > 0);
+   assert.ok(world.story.chain1.length > 0);
+   assert.ok(world.story.chain2.length > 0);
+   assert.ok(world.story.initialItem > 0);
+   assert.ok(world.sectors.filter(Boolean).length >= 10);
+   assert.ok(world.dagobah.filter(Boolean).length >= 4);
+ }
 });
