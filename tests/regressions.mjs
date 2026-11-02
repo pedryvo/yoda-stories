@@ -251,4 +251,57 @@ test('active monsters are rendered on layer 1 and obstruct movement', () => {
  assert.equal(g.state.heroX, 1);
 });
 
+test('Dagobah opening tick runs the X-Wing arrival animation and steps Luke out at (6, 13)', async () => {
+ const g = game();
+ g.newWorld('small', 1);
+ assert.ok(g.state.inventory.some(i => i.tileId === 18)); // Starts with lightsaber from Action #22
+ g.update();
+ await g.waitForScene();
+ assert.equal(g.state.heroX, 6);
+ assert.equal(g.state.heroY, 13);
+ assert.equal(g.heroVisible, true);
+ const z93 = g.worldZones.get(dta.zones.findIndex(z => z.id === 93));
+ assert.equal(z93.tileIDs[(11 * 18 + 6) * 3 + 1], 953);
+});
+
+test('bumping Yoda delivers mission briefing and grants initial quest item', () => {
+ const g = game();
+ g.newWorld('small', 1);
+ const yodaSector = g.currentWorld.dagobah.find(s => s && s.type === 16);
+ assert.ok(yodaSector);
+ const zIdx = dta.zones.findIndex(z => z.id === yodaSector.zoneId);
+ g.loadZone(zIdx, true);
+ const zone = g.worldZones.get(zIdx);
+ // Place Yoda (780) at (5, 5) and Luke at (5, 6)
+ zone.tileIDs[(5 * zone.width + 5) * 3 + 1] = 780;
+ g.state.heroX = 5;
+ g.state.heroY = 6;
+ const dialogs = [];
+ g.onMessageDialog = (title, text, _avatar, close) => {
+   dialogs.push({ title, text });
+   close?.();
+ };
+ g.onPickupOffer = (_item, accept) => accept();
+ g.moveHero(0, -1);
+ assert.equal(dialogs[0]?.title, 'Yoda');
+ assert.ok(dialogs[0]?.text.length > 10);
+ assert.ok(g.state.inventory.some(i => i.tileId === g.currentWorld.story.initialItem));
+});
+
+test('lightsaber attack animation uses CHAR swing body frames and places blade tile in front of Luke', () => {
+ const g = game();
+ g.newWorld('small', 1);
+ g.state.heroX = 8;
+ g.state.heroY = 8;
+ g.state.direction = 1; // Right / East
+ g.attack();
+ const state = g.getAttackRenderState();
+ assert.ok(state);
+ assert.equal(state.heroTileId, 2050);
+ assert.equal(state.effectTileId, 2051);
+ assert.equal(state.effectX, 9);
+ assert.equal(state.effectY, 8);
+});
+
+
 

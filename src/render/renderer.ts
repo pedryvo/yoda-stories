@@ -50,7 +50,9 @@ export class TileRenderer {
     heroY: number,
     isAttacking: boolean = false,
     weaponTileId: number = -1,
-    characters?: Character[]
+    characters?: Character[],
+    weaponEffectX?: number,
+    weaponEffectY?: number
   ): void {
     targetCtx.imageSmoothingEnabled = false;
     targetCtx.fillStyle = '#000000';
@@ -125,9 +127,13 @@ export class TileRenderer {
       if (heroTileId > 0 && heroTileId < tiles.length) {
         targetCtx.drawImage(this.getTileCanvas(tiles[heroTileId]), heroScreenX, heroScreenY);
       }
-      // Render attack weapon swing effect if attacking
+      // Render attack weapon swing effect / projectile if attacking
       if (isAttacking && weaponTileId > 0 && weaponTileId < tiles.length) {
-        targetCtx.drawImage(this.getTileCanvas(tiles[weaponTileId]), heroScreenX, heroScreenY);
+        const wx = weaponEffectX !== undefined ? (weaponEffectX - cameraTileX) * TILE_SIZE : heroScreenX;
+        const wy = weaponEffectY !== undefined ? (weaponEffectY - cameraTileY) * TILE_SIZE : heroScreenY;
+        if (wx >= -TILE_SIZE && wx <= CANVAS_WIDTH && wy >= -TILE_SIZE && wy <= CANVAS_HEIGHT) {
+          targetCtx.drawImage(this.getTileCanvas(tiles[weaponTileId]), wx, wy);
+        }
       }
     }
 
