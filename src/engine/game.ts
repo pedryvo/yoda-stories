@@ -210,8 +210,13 @@ export class YodaGame {
     const floor = this.dta.tiles[tileIDs[offset]];
     const object = this.dta.tiles[tileIDs[offset + 1]];
     // Ground is bit 1; foreground sprites and objects block. Roofs do not.
-    return !!floor && (floor.attributes & 0x02) !== 0 &&
-      (!object || (object.attributes & 0x05) === 0);
+    if (!floor || (floor.attributes & 0x02) === 0 || (object && (object.attributes & 0x05) !== 0)) {
+      return false;
+    }
+    const hasMonster = this.currentZone.monsters?.some(
+      m => m.enabled && m.characterId >= 0 && m.x === x && m.y === y
+    );
+    return !hasMonster;
   }
 
   private handleZoneEdgeTransition(dx: number, dy: number): void {
@@ -560,7 +565,8 @@ export class YodaGame {
       this.state.heroX,
       this.state.heroY,
       this.isAttacking,
-      weaponTileId
+      weaponTileId,
+      this.dta.characters
     );
   }
 

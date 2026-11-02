@@ -1,4 +1,4 @@
-import { Tile, Zone } from '../dta/types';
+import { Character, Tile, Zone } from '../dta/types';
 import { YODA_PALETTE_RGBA } from './palette';
 
 export const TILE_SIZE = 32;
@@ -49,7 +49,8 @@ export class TileRenderer {
     heroX: number,
     heroY: number,
     isAttacking: boolean = false,
-    weaponTileId: number = -1
+    weaponTileId: number = -1,
+    characters?: Character[]
   ): void {
     targetCtx.imageSmoothingEnabled = false;
     targetCtx.fillStyle = '#000000';
@@ -76,7 +77,7 @@ export class TileRenderer {
       }
     }
 
-    // Layer 1: Objects & Monsters
+    // Layer 1: Objects & Static Entities
     for (let vy = 0; vy < VIEW_TILES_Y; vy++) {
       for (let vx = 0; vx < VIEW_TILES_X; vx++) {
         const zx = cameraTileX + vx;
@@ -85,6 +86,28 @@ export class TileRenderer {
         if (tileId >= 0 && tileId < tiles.length) {
           const tile = tiles[tileId];
           targetCtx.drawImage(this.getTileCanvas(tile), vx * TILE_SIZE, vy * TILE_SIZE);
+        }
+      }
+    }
+
+    // Render active monsters on Layer 1
+    if (characters && zone.monsters) {
+      for (const monster of zone.monsters) {
+        if (!monster.enabled || monster.characterId < 0) continue;
+        const char = characters.find(c => c.id === monster.characterId);
+        if (!char || !char.frames || char.frames.length === 0) continue;
+        const monsterTileId = char.frames[1] > 0 ? char.frames[1] : char.frames[0];
+        if (monsterTileId > 0 && monsterTileId < tiles.length) {
+          const screenX = (monster.x - cameraTileX) * TILE_SIZE;
+          const screenY = (monster.y - cameraTileY) * TILE_SIZE;
+          if (
+            screenX >= -TILE_SIZE &&
+            screenX <= CANVAS_WIDTH &&
+            screenY >= -TILE_SIZE &&
+            screenY <= CANVAS_HEIGHT
+          ) {
+            targetCtx.drawImage(this.getTileCanvas(tiles[monsterTileId]), screenX, screenY);
+          }
         }
       }
     }

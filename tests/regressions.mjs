@@ -219,4 +219,36 @@ test('hero facing direction corresponds to correct standing tile frames', () => 
  assert.equal(luke.frames[facingMap[2]], 799);  // Down / South
  assert.equal(luke.frames[facingMap[3]], 1026); // Left / West
 });
+test('active monsters are rendered on layer 1 and obstruct movement', () => {
+ const r = new TileRenderer();
+ const drawn = [];
+ const fakeCtx = {
+   imageSmoothingEnabled: false,
+   fillStyle: '',
+   fillRect() {},
+   drawImage(_img, x, y) { drawn.push({ x, y }); }
+ };
+ r.getTileCanvas = () => ({});
+ const testZone = {
+   width: 5, height: 5,
+   tileIDs: new Int16Array(5 * 5 * 3).fill(-1),
+   hotspots: [],
+   actions: [],
+   monsters: [{ id: 0, characterId: 56, x: 2, y: 2, loot: -1, dropsLoot: false, waypoints: [], damageTaken: 0, enabled: true }]
+ };
+ r.renderZone(fakeCtx, testZone, 0, 0, dta.tiles, 799, 0, 0, false, -1, dta.characters);
+ // Monster at (2, 2) drawn at screen pixel (64, 64)
+ assert.ok(drawn.some(d => d.x === 64 && d.y === 64));
+
+ const g = game();
+ g.currentZone = testZone;
+ g.state.heroX = 1;
+ g.state.heroY = 2;
+ // Walking into the monster at (2, 2) should be obstructed
+ testZone.tileIDs[(2 * 5 + 1) * 3] = 858;
+ testZone.tileIDs[(2 * 5 + 2) * 3] = 858;
+ g.moveHero(1, 0);
+ assert.equal(g.state.heroX, 1);
+});
+
 
