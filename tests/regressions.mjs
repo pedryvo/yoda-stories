@@ -352,6 +352,110 @@ test('arriving at medical clinic (zone 642) in bed makes Luke visible, heals him
  assert.equal(g.isWalkable(4, 3), true);
 });
 
+test('killing monster drops loot (e.g. blaster pistol tile 512) which is walkable and collectible into inventory', () => {
+ const g = game();
+ const testZone = {
+   id: 1,
+   planet: 2,
+   width: 5,
+   height: 5,
+   tileIDs: new Int16Array(5 * 5 * 3).fill(-1),
+   hotspots: [],
+   actions: [],
+   monsters: [{
+     id: 0,
+     characterId: 2,
+     x: 2,
+     y: 2,
+     loot: 513, // Blaster drop (513 - 1 = 512)
+     dropsLoot: true,
+     waypoints: Array(8).fill(-1),
+     damageTaken: 0,
+     enabled: true
+   }]
+ };
+ for (let y = 0; y < 5; y++) {
+   for (let x = 0; x < 5; x++) {
+     testZone.tileIDs[(y * 5 + x) * 3] = 858;
+   }
+ }
+ g.currentZone = testZone;
+ g.state.heroX = 1;
+ g.state.heroY = 2;
+
+ // Kill monster at (2, 2)
+ const hit = applyMonsterDamage(testZone, dta.characters, 2, 2, 100);
+ assert.ok(hit && hit.killed);
+ assert.equal(testZone.tileIDs[(2 * 5 + 2) * 3 + 1], 512);
+ assert.ok(testZone.hotspots.some(h => h.type === 6 && h.x === 2 && h.y === 2 && h.arg === 512));
+
+ // Tile 512 has attribute bit 0 set (0x10041), but is walkable because of pickup hotspot
+ assert.equal(g.isWalkable(2, 2), true);
+
+ // Move Luke onto (2, 2)
+ g.moveHero(1, 0);
+ assert.equal(g.state.heroX, 2);
+ assert.equal(g.state.heroY, 2);
+
+ // Blaster added to inventory and map tile removed
+ assert.ok(g.state.inventory.some(item => item.id === 512));
+ assert.equal(testZone.tileIDs[(2 * 5 + 2) * 3 + 1], -1);
+});
+
+test('when player health is depleted to 0, defeat is triggered, game is paused and Luke cannot move', () => {
+ const g = game();
+ const testZone = {
+   id: 1,
+   planet: 2,
+   width: 5,
+   height: 5,
+   tileIDs: new Int16Array(5 * 5 * 3).fill(-1),
+   hotspots: [],
+   actions: [],
+   monsters: []
+ };
+ for (let y = 0; y < 5; y++) {
+   for (let x = 0; x < 5; x++) {
+     testZone.tileIDs[(y * 5 + x) * 3] = 858;
+   }
+ }
+ g.currentZone = testZone;
+ g.state.heroX = 1;
+ g.state.heroY = 1;
+ g.state.health = 2;
+ g.state.gamesLost = 0;
+
+ let defeatDialogShown = false;
+ g.onMessageDialog = (title, text) => {
+   defeatDialogShown = true;
+ };
+
+ testZone.monsters = [{
+   id: 0,
+   characterId: 56,
+   x: 2,
+   y: 1,
+   loot: -1,
+   dropsLoot: false,
+   waypoints: [],
+   damageTaken: 0,
+   enabled: true
+ }];
+
+ for (let i = 0; i < 8; i++) g.update();
+
+ assert.equal(g.state.health, 0);
+ assert.equal(g.state.isPaused, true);
+ assert.equal(g.state.gamesLost, 1);
+ assert.equal(defeatDialogShown, true);
+
+ // Actions are locked when dead
+ g.moveHero(0, 1);
+ assert.equal(g.state.heroX, 1);
+ assert.equal(g.state.heroY, 1);
+});
+
+
 
 
 

@@ -61,6 +61,7 @@ export class YodaGame {
   public heroVisible: boolean = true;
   public hasLeftDagobah: boolean = false;
   private pendingPostEnter: boolean = false;
+  private isDead: boolean = false;
   private doorReturnStack: Array<{ zoneId: number; x: number; y: number }> = [];
 
   // Callback hooks for HTML5 UI
@@ -169,7 +170,7 @@ export class YodaGame {
   }
 
   public moveHero(dx: number, dy: number): void {
-    if (this.state.isPaused || this.storyDialogue || !this.currentZone) return;
+    if (this.state.isPaused || this.storyDialogue || !this.currentZone || this.isDead) return;
 
     if (dy < 0) this.state.direction = 0; // Up
     else if (dx > 0) this.state.direction = 1; // Right
@@ -192,6 +193,22 @@ export class YodaGame {
     }
 
     if (!this.isWalkable(targetX, targetY)) {
+      const pickup = this.currentZone.hotspots.find(
+        h => h.enabled && [0, 2, 5, 6, 8].includes(h.type) && h.x === targetX && h.y === targetY
+      );
+      if (pickup && pickup.arg >= 0) {
+        const idx = (targetY * this.currentZone.width + targetX) * 3 + 1;
+        if (this.currentZone.tileIDs[idx] === pickup.arg) {
+          this.currentZone.tileIDs[idx] = -1;
+          pickup.enabled = false;
+          this.offerOrAddQuestItem(pickup.arg, targetX, targetY, () => {
+            this.currentZone!.tileIDs[idx] = pickup.arg;
+            pickup.enabled = true;
+          });
+          this.notifyState();
+          return;
+        }
+      }
       const bumpTile = this.currentZone.tileIDs[(targetY * this.currentZone.width + targetX) * 3 + 1];
       if (
         this.currentZone.id === 93 &&
@@ -228,15 +245,18 @@ export class YodaGame {
     this.notifyState();
   }
 
-  private isWalkable(x: number, y: number): boolean {
+  public isWalkable(x: number, y: number): boolean {
     if (!this.currentZone || !this.dta) return false;
     const { width, height, tileIDs } = this.currentZone;
     if (x < 0 || y < 0 || x >= width || y >= height) return false;
     const offset = (y * width + x) * 3;
     const floor = this.dta.tiles[tileIDs[offset]];
     const object = this.dta.tiles[tileIDs[offset + 1]];
-    // Ground is bit 1; foreground sprites and objects block. Roofs do not.
-    if (!floor || (floor.attributes & 0x02) === 0 || (object && (object.attributes & 0x05) !== 0)) {
+    const isPickupItem = this.currentZone.hotspots?.some(
+      h => h.enabled && [0, 2, 5, 6, 8].includes(h.type) && h.x === x && h.y === y
+    );
+    // Ground is bit 1; foreground sprites and objects block unless it's a collectible pickup item. Roofs do not.
+    if (!floor || (floor.attributes & 0x02) === 0 || (!isPickupItem && object && (object.attributes & 0x05) !== 0)) {
       return false;
     }
     const hasMonster = this.currentZone.monsters?.some(
@@ -563,6 +583,7 @@ export class YodaGame {
       this.state.inventory.push(item);
       if (item.type === 'weapon' && !this.state.equippedWeapon) this.state.equippedWeapon = item;
     }
+    this.audio.playSound('chirp.wav');
     this.notifyState();
   }
 
@@ -636,6 +657,9 @@ export class YodaGame {
       },
       addHealth: delta => {
         this.state.health = Math.max(0, Math.min(this.state.maxHealth, this.state.health + delta));
+        if (this.state.health <= 0) {
+          this.handlePlayerDefeat();
+        }
       },
       solveSector: () => {
         if (sector) sector.solved = true;
@@ -652,8 +676,7 @@ export class YodaGame {
         }
       },
       loseGame: () => {
-        this.state.gamesLost++;
-        localStorage.setItem('yoda_games_lost', this.state.gamesLost.toString());
+        this.handlePlayerDefeat();
       },
       addItem: id => this.addStoryItem(id),
       removeItem: id => {
@@ -705,7 +728,7 @@ export class YodaGame {
   }
 
   public attack(): void {
-    if (this.state.isPaused || this.storyDialogue || !this.currentZone || !this.state.equippedWeapon || this.isAttacking) return;
+    if (this.state.isPaused || this.storyDialogue || !this.currentZone || !this.state.equippedWeapon || this.isAttacking || this.isDead) return;
     this.isAttacking = true;
     this.attackTimer = 12; // 12 frames duration
 
@@ -867,6 +890,7 @@ export class YodaGame {
     this.state.score = 0;
     this.state.worldControl = size;
     this.state.isPaused = false;
+    this.isDead = false;
     this.state.direction = 2;
     this.state.inventory = [];
     this.state.equippedWeapon = null;
@@ -934,6 +958,7 @@ export class YodaGame {
           this.scripts.set(saved.index,script);
         }
         this.state = parsed.state;
+        this.isDead = false;
         this.state.equippedWeapon = this.state.inventory.find(i => i.id === this.state.equippedWeapon?.id) || null;
         this.state.equippedItem = this.state.inventory.find(i => i.id === this.state.equippedItem?.id) || null;
         this.loadZone(this.state.currentZoneId, true);
@@ -947,8 +972,23 @@ export class YodaGame {
     }
   }
 
+  private handlePlayerDefeat(): void {
+    if (this.isDead) return;
+    this.isDead = true;
+    this.state.health = 0;
+    this.state.gamesLost++;
+    localStorage.setItem('yoda_games_lost', this.state.gamesLost.toString());
+    this.audio.playSound('tryagain.wav');
+    this.state.isPaused = true;
+    this.showNativeDialog(t().dialogs.defeatTitle, t().dialogs.defeatText, 799, () => {
+      this.state.isPaused = true;
+      this.notifyState();
+    });
+    this.notifyState();
+  }
+
   public update(): void {
-    if (this.state.isPaused || this.storyDialogue) return;
+    if (this.state.isPaused || this.storyDialogue || this.isDead) return;
 
     this.tickCount++;
     if (this.pendingPostEnter) {
@@ -971,7 +1011,7 @@ export class YodaGame {
   }
 
   private updateMonsters(): void {
-    if (!this.currentZone || !this.dta || !this.currentZone.monsters) return;
+    if (!this.currentZone || !this.dta || !this.currentZone.monsters || this.isDead) return;
     for (const m of this.currentZone.monsters) {
       if (!m.enabled || m.characterId < 0) continue;
       const dx = Math.sign(this.state.heroX - m.x);
@@ -981,6 +1021,10 @@ export class YodaGame {
         const char = this.dta.characters.find(c => c.id === m.characterId);
         const dmg = Math.max(1, (char?.damage ?? 2) * 2);
         this.state.health = Math.max(0, this.state.health - dmg);
+        if (this.state.health <= 0) {
+          this.handlePlayerDefeat();
+          return;
+        }
         this.notifyState();
       } else if (dist <= 6) {
         const stepX = dx !== 0 && this.isWalkable(m.x + dx, m.y) && (m.x + dx !== this.state.heroX || m.y !== this.state.heroY) ? m.x + dx : m.x;
