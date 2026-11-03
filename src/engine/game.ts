@@ -327,7 +327,8 @@ export class YodaGame {
           this.runScripts('enter');
           if (!this.storyDialogue) {
             this.pendingPostEnter = false;
-            this.runScripts('tick');
+            this.runScripts('walk', this.state.heroX, this.state.heroY);
+            if (!this.storyDialogue) this.runScripts('tick');
           }
           return true;
         }
@@ -347,7 +348,8 @@ export class YodaGame {
           this.runScripts('enter');
           if (!this.storyDialogue) {
             this.pendingPostEnter = false;
-            this.runScripts('tick');
+            this.runScripts('walk', this.state.heroX, this.state.heroY);
+            if (!this.storyDialogue) this.runScripts('tick');
           }
           return true;
         }
@@ -951,7 +953,10 @@ export class YodaGame {
     this.tickCount++;
     if (this.pendingPostEnter) {
       this.pendingPostEnter = false;
-      this.runScripts('tick');
+      this.runScripts('walk', this.state.heroX, this.state.heroY);
+      if (!this.storyDialogue) {
+        this.runScripts('tick');
+      }
     }
     if (this.tickCount % 8 === 0 && !this.storyDialogue) {
       this.updateMonsters();

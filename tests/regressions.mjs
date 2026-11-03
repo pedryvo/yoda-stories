@@ -313,5 +313,45 @@ test('lightsaber attack animation uses CHAR swing body frames and places blade t
  assert.equal(state.effectY, 8);
 });
 
+test('arriving at medical clinic (zone 642) in bed makes Luke visible, heals him and clears bed blocker', async () => {
+ const g = game();
+ g.newWorld('small', 1);
+ const z642Idx = dta.zones.findIndex(z => z.id === 642);
+ assert.ok(z642Idx >= 0);
+
+ // Simulate space battle shoot-down ending with changeZone(642, 5, 3) and hero invisible
+ g.heroVisible = false;
+ g.state.health = 50;
+ g.loadZone(z642Idx, true);
+ g.state.heroX = 5;
+ g.state.heroY = 3;
+
+ // Initially in bed, exit (4, 3) has an obstacle tile and is not walkable
+ assert.equal(g.heroVisible, false);
+ assert.equal(g.isWalkable(4, 3), false);
+
+ const dialogs = [];
+ g.onMessageDialog = (title, text, _avatar, close) => {
+   dialogs.push({ title, text });
+   close?.();
+ };
+
+ // Run enter script and then update()
+ g.runScripts('enter');
+ g.update();
+ await g.waitForScene();
+
+ // Action 0 should have executed:
+ // 1. Luke is healed (+300 health)
+ assert.equal(g.state.health, g.state.maxHealth);
+ // 2. Luke is visible
+ assert.equal(g.heroVisible, true);
+ // 3. Waking dialogue triggered
+ assert.ok(dialogs.some(d => d.text.includes('aching head')));
+ // 4. Bed blocker at (4, 3) cleared to -1, making tile walkable
+ assert.equal(g.isWalkable(4, 3), true);
+});
+
+
 
 
